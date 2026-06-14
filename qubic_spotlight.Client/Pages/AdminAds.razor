@@ -1,0 +1,89 @@
+@page "/admin"
+@attribute [Authorize]
+@inherits LocalizedComponentBase
+@inject SpotlightApi Api
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>@L["ads.title"] – Qubic Spotlight</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight:500;">@L["ads.title"]</MudText>
+    <MudSpacer />
+    <MudButton OnClick="@(() => EditAsync(null))" Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add">@L["ads.new"]</MudButton>
+</div>
+
+@if (!_manager)
+{
+    <MudText Class="mb-3" Style="color:#b9c2cf;">@L.T("ads.ownHint", SpotlightLimits.MaxActiveAdsPerOwner)</MudText>
+}
+
+<MudTable Items="_ads" Hover="true" Striped="true" Loading="_loading" Dense="true">
+    <HeaderContent>
+        <MudTh>@L["col.title"]</MudTh>
+        <MudTh>@L["col.ecosystem"]</MudTh>
+        <MudTh>@L["col.start"]</MudTh>
+        <MudTh>@L["col.expiry"]</MudTh>
+        <MudTh>@L["col.active"]</MudTh>
+        <MudTh>@L["col.impressions"]</MudTh>
+        <MudTh>@L["col.clicks"]</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Title</MudTd>
+        <MudTd>@context.Ecosystem</MudTd>
+        <MudTd>@context.StartDate.ToString("yyyy-MM-dd")</MudTd>
+        <MudTd>@(context.ExpiryDate?.ToString("yyyy-MM-dd") ?? "–")</MudTd>
+        <MudTd>
+            <MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
+                     Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small" />
+        </MudTd>
+        <MudTd>@context.ImpressionCount</MudTd>
+        <MudTd>@context.ClickCount</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<Ad> _ads = new();
+    private bool _manager;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthProvider.GetAuthenticationStateAsync();
+        _manager = state.User.IsInRole(Roles.Admin) || state.User.IsInRole(Roles.Marketing);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _ads = _manager ? await Api.GetAllAdsAsync() : await Api.GetMyAdsAsync();
+        _loading = false;
+    }
+
+    private async Task EditAsync(Ad? ad)
+    {
+        var parameters = new DialogParameters { ["Ad"] = ad, ["Manager"] = _manager };
+        var dialog = await DialogService.ShowAsync<AdDialog>(ad is null ? L["dlg.newAd"] : L["dlg.editAd"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task DeleteAsync(Ad ad)
+    {
+        var ok = await DialogService.ShowMessageBoxAsync(L["ads.deleteTitle"],
+            L.T("ads.deleteBody", ad.Title), yesText: L["common.delete"], cancelText: L["common.cancel"]);
+        if (ok != true) return;
+
+        var (success, error) = await Api.DeleteAdAsync(ad.Id, _manager);
+        if (success) { Snackbar.Add(L["msg.deleted"], Severity.Success); await LoadAsync(); }
+        else Snackbar.Add(error ?? L["msg.error"], Severity.Error);
+    }
+}

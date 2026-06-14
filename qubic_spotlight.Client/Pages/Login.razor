@@ -1,0 +1,52 @@
+@page "/login"
+@inherits LocalizedComponentBase
+@inject SpotlightApi Api
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager Nav
+
+<PageTitle>Login – Qubic Spotlight</PageTitle>
+
+<div style="display:flex; justify-content:center; margin-top:8vh;">
+    <MudPaper Class="pa-8" Style="width:380px;" Elevation="4">
+        <MudText Typo="Typo.h5" Class="mb-4" Style="font-weight:500;">@L["login.title"]</MudText>
+
+        <MudTextField @bind-Value="_email" Label='@L["login.email"]' Variant="Variant.Outlined"
+                      InputType="InputType.Email" Class="mb-4" Immediate="true" OnKeyUp="OnKey" />
+        <MudTextField @bind-Value="_password" Label='@L["login.password"]' Variant="Variant.Outlined"
+                      InputType="InputType.Password" Class="mb-4" Immediate="true" OnKeyUp="OnKey" />
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+        }
+
+        <MudButton OnClick="DoLogin" Variant="Variant.Filled" Color="Color.Primary"
+                   FullWidth="true" Disabled="_busy">
+            @(_busy ? "..." : L["login.signin"])
+        </MudButton>
+    </MudPaper>
+</div>
+
+@code {
+    private string _email = "";
+    private string _password = "";
+    private string? _error;
+    private bool _busy;
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await DoLogin();
+    }
+
+    private async Task DoLogin()
+    {
+        _busy = true;
+        _error = null;
+        var res = await Api.LoginAsync(_email, _password);
+        _busy = false;
+
+        if (res is null) { _error = L["login.failed"]; return; }
+        ((JwtAuthStateProvider)AuthProvider).NotifyChanged();
+        Nav.NavigateTo("/admin");
+    }
+}

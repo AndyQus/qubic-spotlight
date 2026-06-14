@@ -1,0 +1,110 @@
+@inherits LocalizedComponentBase
+@inject SpotlightApi Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_input.Title" Label='@L["addlg.headline"]' MaxLength="80"
+                      Variant="Variant.Outlined" Class="mb-3" Required="true" />
+        <MudTextField @bind-Value="_input.Description" Label='@L["addlg.desc"]' MaxLength="280"
+                      Variant="Variant.Outlined" Lines="3" Class="mb-3" Required="true" />
+        <MudTextField @bind-Value="_input.LinkUrl" Label='@L["addlg.link"]' Variant="Variant.Outlined"
+                      Class="mb-3" Required="true" Placeholder="https://..." />
+
+        <MudTextField @bind-Value="_input.ImageUrl" Label='@L["addlg.imageUrl"]'
+                      Variant="Variant.Outlined" Class="mb-1" Placeholder="https://... | /uploads/..." />
+        <div class="mb-3">
+            <InputFile OnChange="UploadAsync" accept=".png,.jpg,.jpeg,.svg,.webp" />
+            @if (_uploading) { <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="ml-2" /> }
+        </div>
+        @if (!string.IsNullOrEmpty(_input.ImageUrl))
+        {
+            <MudImage Src="@_input.ImageUrl" Height="80" Class="mb-3" ObjectFit="ObjectFit.Cover" />
+        }
+
+        <div class="d-flex gap-3 mb-3">
+            <MudDatePicker @bind-Date="_start" Label='@L["addlg.start"]' Variant="Variant.Outlined" />
+            <MudDatePicker @bind-Date="_expiry" Label='@L["addlg.expiry"]' Variant="Variant.Outlined" Clearable="true" />
+        </div>
+
+        @if (Manager)
+        {
+            <MudTextField @bind-Value="_input.Ecosystem" Label='@L["addlg.ecosystem"]'
+                          Variant="Variant.Outlined" Class="mb-3" />
+        }
+
+        <div class="d-flex gap-3 align-center">
+            <MudNumericField @bind-Value="_input.SortOrder" Label='@L["addlg.order"]' Variant="Variant.Outlined" Style="width:140px;" />
+            <MudSwitch @bind-Value="_input.IsActive" Color="Color.Primary" Label='@L["addlg.active"]' />
+        </div>
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["common.cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">@L["common.save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
+    [Parameter] public Ad? Ad { get; set; }
+    [Parameter] public bool Manager { get; set; }
+
+    private AdInput _input = new();
+    private DateTime? _start = DateTime.UtcNow.Date;
+    private DateTime? _expiry;
+    private bool _busy, _uploading;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        if (Ad is not null)
+        {
+            _input = new AdInput
+            {
+                Title = Ad.Title,
+                Description = Ad.Description,
+                LinkUrl = Ad.LinkUrl,
+                ImageUrl = Ad.ImageUrl,
+                StartDate = Ad.StartDate,
+                ExpiryDate = Ad.ExpiryDate,
+                IsActive = Ad.IsActive,
+                Ecosystem = Ad.Ecosystem,
+                SortOrder = Ad.SortOrder
+            };
+            _start = Ad.StartDate;
+            _expiry = Ad.ExpiryDate;
+        }
+    }
+
+    private async Task UploadAsync(InputFileChangeEventArgs e)
+    {
+        _uploading = true;
+        _error = null;
+        var url = await Api.UploadImageAsync(e.File);
+        _uploading = false;
+        if (url is null) { _error = L["addlg.uploadFail"]; return; }
+        _input.ImageUrl = url;
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _error = null;
+        _input.StartDate = _start ?? DateTime.UtcNow.Date;
+        _input.ExpiryDate = _expiry;
+
+        var (ok, error) = await Api.SaveAdAsync(_input, Ad?.Id, Manager);
+        _busy = false;
+        if (!ok) { _error = error; return; }
+        Snackbar.Add(L["msg.saved"], Severity.Success);
+        Dialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

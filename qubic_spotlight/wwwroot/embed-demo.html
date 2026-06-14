@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qubic Spotlight – Embed Demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 40px; line-height: 1.6;
+           background: #f4f5f7; color: #222; }
+    .box { max-width: 720px; margin: 0 auto; background: #fff; padding: 28px 32px;
+           border-radius: 12px; box-shadow: 0 4px 18px rgba(0,0,0,.06); }
+    code { background: #eef; padding: 1px 5px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Beispiel-Fremdseite</h1>
+    <p>Diese Seite simuliert eine fremde Webseite, die das Qubic-Spotlight-Widget
+       einbindet. Das Widget unten/seitlich kommt vom <code>&lt;script&gt;</code>-Tag
+       am Ende dieser Datei – es legt sich als eigene Ebene über die Seite.</p>
+    <p>Optionen änderst du direkt im Script-Tag (<code>data-mode</code>,
+       <code>data-position</code> …). Den fertigen Snippet gibt es auch im Admin
+       unter „Embed".</p>
+  </div>
+
+  <!-- Das Embed-Widget. Auf der echten Fremdseite zeigt src auf deinen Host. -->
+  <script src="/spotlight.js"
+          data-mode="slide-panel"
+          data-position="right"
+          data-interval="5000"
+          data-theme="auto"
+          data-max="10"
+          data-closable="true"
+          async></script>
+</body>
+</html>

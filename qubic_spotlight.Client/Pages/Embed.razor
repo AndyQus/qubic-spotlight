@@ -1,0 +1,94 @@
+@page "/admin/embed"
+@attribute [Authorize]
+@inherits LocalizedComponentBase
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject SpotlightApi Api
+@inject ISnackbar Snackbar
+
+<PageTitle>Embed – Qubic Spotlight</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-2" Style="font-weight:500;">@L["embed.title"]</MudText>
+<MudText Class="mb-4" Style="color:#b9c2cf;">@L["embed.intro"]</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4">
+            <MudSelect T="string" @bind-Value="_mode" Label='@L["embed.mode"]' Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="@("slide-panel")">slide-panel</MudSelectItem>
+                <MudSelectItem Value="@("edge-marquee")">edge-marquee</MudSelectItem>
+                <MudSelectItem Value="@("corner-card")">corner-card</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="string" @bind-Value="_position" Label='@L["embed.position"]' Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="@("right")">right</MudSelectItem>
+                <MudSelectItem Value="@("left")">left</MudSelectItem>
+                <MudSelectItem Value="@("bottom")">bottom</MudSelectItem>
+                <MudSelectItem Value="@("top")">top</MudSelectItem>
+            </MudSelect>
+            <MudSelect T="string" @bind-Value="_theme" Label='@L["embed.theme"]' Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="@("auto")">auto</MudSelectItem>
+                <MudSelectItem Value="@("dark")">dark</MudSelectItem>
+                <MudSelectItem Value="@("light")">light</MudSelectItem>
+            </MudSelect>
+            <MudNumericField @bind-Value="_interval" Label='@L["embed.interval"]' Variant="Variant.Outlined" Class="mb-3" />
+            <MudNumericField @bind-Value="_max" Label='@L["embed.max"]' Variant="Variant.Outlined" Class="mb-3" />
+            <MudSwitch @bind-Value="_closable" Color="Color.Primary" Label='@L["embed.closable"]' />
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="7">
+        <MudText Typo="Typo.subtitle1">@L["embed.snippet"]</MudText>
+        <MudPaper Class="pa-4 mb-2" Style="background:#0d1117;">
+            <pre style="margin:0; white-space:pre-wrap; word-break:break-all; color:#9fe1cb; font-size:13px;">@Snippet</pre>
+        </MudPaper>
+        <MudButton OnClick="CopyAsync" Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.ContentCopy">@L["embed.copy"]</MudButton>
+
+        <MudDivider Class="my-6" />
+
+        <MudText Typo="Typo.subtitle1">@L["embed.apikeyTitle"]</MudText>
+        <MudText Class="mb-2" Style="color:#b9c2cf;">@L["embed.apikeyHint"]</MudText>
+        <MudButton OnClick="RegenerateKeyAsync" Variant="Variant.Outlined" Color="Color.Secondary"
+                   StartIcon="@Icons.Material.Filled.Key">@L["embed.apikeyBtn"]</MudButton>
+        @if (_apiKey is not null)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3">
+                @L["embed.apikeyOnce"]<br /><code style="word-break:break-all;">@_apiKey</code>
+            </MudAlert>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _mode = "slide-panel";
+    private string _position = "right";
+    private string _theme = "auto";
+    private int _interval = 5000;
+    private int _max = 10;
+    private bool _closable = true;
+    private string? _apiKey;
+
+    private string BaseUrl => Nav.BaseUri.TrimEnd('/');
+
+    private string Snippet =>
+$@"<script src=""{BaseUrl}/spotlight.js""
+        data-mode=""{_mode}""
+        data-position=""{_position}""
+        data-interval=""{_interval}""
+        data-theme=""{_theme}""
+        data-max=""{_max}""
+        data-closable=""{(_closable ? "true" : "false")}""
+        async></script>";
+
+    private async Task CopyAsync()
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", Snippet);
+        Snackbar.Add(L["embed.copied"], Severity.Success);
+    }
+
+    private async Task RegenerateKeyAsync()
+    {
+        _apiKey = await Api.RegenerateMyApiKeyAsync();
+        if (_apiKey is null) Snackbar.Add(L["msg.error"], Severity.Error);
+    }
+}

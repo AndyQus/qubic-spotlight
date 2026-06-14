@@ -1,0 +1,75 @@
+@inherits LocalizedComponentBase
+@inject SpotlightApi Api
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_input.Email" Label='@L["col.email"]' Variant="Variant.Outlined"
+                      Class="mb-3" Required="true" />
+        <MudTextField @bind-Value="_input.Password" Label='@(_isNew ? L["userdlg.password"] : L["userdlg.passwordNew"])'
+                      Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
+
+        <MudSelect T="string" @bind-SelectedValues="_roles" Label='@L["userdlg.roles"]' MultiSelection="true"
+                   Variant="Variant.Outlined" Class="mb-3">
+            <MudSelectItem T="string" Value="@Roles.Admin">Admin</MudSelectItem>
+            <MudSelectItem T="string" Value="@Roles.Marketing">Marketing</MudSelectItem>
+            <MudSelectItem T="string" Value="@Roles.Ecosystem">Ecosystem</MudSelectItem>
+        </MudSelect>
+
+        <MudTextField @bind-Value="_input.Ecosystem" Label='@L["userdlg.ecosystemGroup"]'
+                      Variant="Variant.Outlined" Class="mb-3" />
+        <MudSwitch @bind-Value="_input.IsActive" Color="Color.Primary" Label='@L["addlg.active"]' />
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@L["common.cancel"]</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">@L["common.save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
+    [Parameter] public UserDto? User { get; set; }
+
+    private UserInput _input = new() { Roles = new() { Roles.Ecosystem } };
+    private IReadOnlyCollection<string> _roles = new[] { Roles.Ecosystem };
+    private bool _isNew = true;
+    private bool _busy;
+    private string? _error;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        if (User is not null)
+        {
+            _isNew = false;
+            _input = new UserInput
+            {
+                Email = User.Email,
+                Roles = User.Roles,
+                Ecosystem = User.Ecosystem,
+                IsActive = User.IsActive
+            };
+            _roles = User.Roles.ToList();
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _error = null;
+        _input.Roles = _roles.ToList();
+
+        var (ok, error) = await Api.SaveUserAsync(_input, User?.Id);
+        _busy = false;
+        if (!ok) { _error = error; return; }
+        Snackbar.Add(L["msg.saved"], Severity.Success);
+        Dialog.Close(DialogResult.Ok(true));
+    }
+
+    private void Cancel() => Dialog.Cancel();
+}

@@ -1,0 +1,106 @@
+@page "/"
+@inherits LocalizedComponentBase
+@inject SpotlightApi Api
+
+<PageTitle>Qubic Spotlight</PageTitle>
+
+<script src="http://localhost:5080/spotlight.js"
+        data-mode="slide-panel"
+        data-position="right"
+        data-interval="5000"
+        data-theme="auto"
+        data-max="10"
+        data-closable="true"
+        async></script>
+
+@* <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight:500;">Qubic Spotlight</MudText> *@
+
+@if (_stats is not null)
+{
+    <div class="qs-stats">
+        @foreach (var (label, value) in StatTiles())
+        {
+            <div class="qs-stat">
+                <div class="label">@label</div>
+                <div class="value">@value</div>
+            </div>
+        }
+    </div>
+}
+
+@if (_ads.Count > 0)
+{
+    <MudCarousel Class="mud-width-full" Style="height:220px; border-radius:12px; margin-bottom:24px;"
+                 ShowArrows="true" ShowBullets="true" AutoCycle="true"
+                 AutoCycleTime="TimeSpan.FromSeconds(5)" TData="PublicAd" ItemsSource="_ads">
+        <ItemTemplate Context="ad">
+            <a href="@ClickUrl(ad)" target="_blank" rel="noopener"
+               style="display:flex; height:100%; text-decoration:none; background:#1a2332;">
+                @if (!string.IsNullOrEmpty(ad.ImageUrl))
+                {
+                    <img src="@ad.ImageUrl" alt="" style="width:300px; object-fit:cover;" />
+                }
+                <div style="padding:24px; display:flex; flex-direction:column; justify-content:center;">
+                    <h2 style="margin:0 0 8px; color:#f2f5fa; font-weight:500;">@ad.Title</h2>
+                    <p style="margin:0; color:#b9c2cf; max-width:560px;">@ad.Description</p>
+                    @if (!string.IsNullOrEmpty(ad.Ecosystem))
+                    {
+                        <span class="qs-ad-eco">@ad.Ecosystem</span>
+                    }
+                </div>
+            </a>
+        </ItemTemplate>
+    </MudCarousel>
+
+    <div class="qs-ads mt-5">
+        @foreach (var ad in _ads)
+        {
+            <a href="@ClickUrl(ad)" target="_blank" rel="noopener" class="qs-ad-card" style="text-decoration:none;">
+                @if (!string.IsNullOrEmpty(ad.ImageUrl))
+                {
+                    <img src="@ad.ImageUrl" alt="" />
+                }
+                <div class="qs-ad-body">
+                    <h3>@ad.Title</h3>
+                    <p>@ad.Description</p>
+                    @if (!string.IsNullOrEmpty(ad.Ecosystem))
+                    {
+                        <span class="qs-ad-eco">@ad.Ecosystem</span>
+                    }
+                </div>
+            </a>
+        }
+    </div>
+}
+else if (_loaded)
+{
+    <MudText Class="pa-8" Style="color:#b9c2cf;">@L["dash.noAds"]</MudText>
+}
+
+@code {
+    private QubicStats? _stats;
+    private List<PublicAd> _ads = new();
+    private bool _loaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _stats = await Api.GetStatsAsync();
+        _ads = await Api.GetPublicAdsAsync();
+        _loaded = true;
+    }
+
+    private static string ClickUrl(PublicAd ad) => $"/api/ads/{ad.Id}/click";
+
+    private IEnumerable<(string, string)> StatTiles()
+    {
+        var s = _stats!;
+        yield return (L["stat.price"], Format.Price(s.Price));
+        yield return (L["stat.marketcap"], Format.Money(s.MarketCap));
+        yield return (L["stat.supply"], Format.Compact(s.CirculatingSupply));
+        yield return (L["stat.addresses"], Format.Compact(s.ActiveAddresses));
+        yield return (L["stat.epoch"], s.Epoch.ToString());
+        yield return (L["stat.tick"], Format.Compact(s.CurrentTick));
+        yield return (L["stat.quality"], s.EpochTickQuality.ToString("0.0") + "%");
+        yield return (L["stat.burned"], Format.Compact(s.BurnedQus));
+    }
+}

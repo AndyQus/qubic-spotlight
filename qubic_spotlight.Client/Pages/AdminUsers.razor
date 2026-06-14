@@ -1,0 +1,84 @@
+@page "/admin/users"
+@attribute [Authorize(Roles = "Admin")]
+@inherits LocalizedComponentBase
+@inject SpotlightApi Api
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>@L["users.title"] – Qubic Spotlight</PageTitle>
+
+<div class="d-flex align-center mb-4">
+    <MudText Typo="Typo.h4" Style="font-weight:500;">@L["users.title"]</MudText>
+    <MudSpacer />
+    <MudButton OnClick="@(() => EditAsync(null))" Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.PersonAdd">@L["users.new"]</MudButton>
+</div>
+
+<MudTable Items="_users" Hover="true" Striped="true" Loading="_loading" Dense="true">
+    <HeaderContent>
+        <MudTh>@L["col.email"]</MudTh>
+        <MudTh>@L["col.roles"]</MudTh>
+        <MudTh>@L["col.ecosystem"]</MudTh>
+        <MudTh>@L["col.active"]</MudTh>
+        <MudTh>@L["col.apikey"]</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>@context.Email</MudTd>
+        <MudTd>@string.Join(", ", context.Roles)</MudTd>
+        <MudTd>@context.Ecosystem</MudTd>
+        <MudTd>
+            <MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Block)"
+                     Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" />
+        </MudTd>
+        <MudTd>@(context.HasApiKey ? "✓" : "–")</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Key" Size="Size.Small" title='@L["users.regenKey"]'
+                           OnClick="@(() => RegenerateKeyAsync(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(context))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(context))" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private List<UserDto> _users = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _users = await Api.GetUsersAsync();
+        _loading = false;
+    }
+
+    private async Task EditAsync(UserDto? user)
+    {
+        var parameters = new DialogParameters { ["User"] = user };
+        var dialog = await DialogService.ShowAsync<UserDialog>(user is null ? L["dlg.newUser"] : L["dlg.editUser"], parameters);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled) await LoadAsync();
+    }
+
+    private async Task DeleteAsync(UserDto user)
+    {
+        var ok = await DialogService.ShowMessageBoxAsync(L["ads.deleteTitle"],
+            L.T("users.deleteBody", user.Email), yesText: L["common.delete"], cancelText: L["common.cancel"]);
+        if (ok != true) return;
+        var (success, error) = await Api.DeleteUserAsync(user.Id);
+        if (success) { Snackbar.Add(L["msg.deleted"], Severity.Success); await LoadAsync(); }
+        else Snackbar.Add(error ?? L["msg.error"], Severity.Error);
+    }
+
+    private async Task RegenerateKeyAsync(UserDto user)
+    {
+        var key = await Api.RegenerateUserApiKeyAsync(user.Id);
+        if (key is null) { Snackbar.Add(L["msg.error"], Severity.Error); return; }
+        var body = L["users.apikeyBody"];
+        await DialogService.ShowMessageBoxAsync(L["users.apikeyTitle"],
+            (MarkupString)$"<p>{body}</p><code style='word-break:break-all'>{key}</code>");
+        await LoadAsync();
+    }
+}

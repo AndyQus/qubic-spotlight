@@ -1,0 +1,123 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject SpotlightApi Api
+@inject Localizer L
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthProvider
+
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Style="@AppBarStyle">
+        <a href="/" class="qs-logo">
+            <img src="/qubic-spotlight-logo.svg" alt="Qubic Spotlight" style="height:64px;" />
+        </a>
+        <MudSpacer />
+
+        <MudButton Href="/" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Dashboard">@L["nav.dashboard"]</MudButton>
+        <AuthorizeView>
+            <Authorized>
+                <MudButton Href="/admin" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Campaign">@L["nav.ads"]</MudButton>
+                <MudButton Href="/admin/embed" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Code">@L["nav.embed"]</MudButton>
+                <AuthorizeView Roles="Admin" Context="adminCtx">
+                    <MudButton Href="/admin/users" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.People">@L["nav.users"]</MudButton>
+                </AuthorizeView>
+                <MudButton OnClick="LogoutAsync" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Logout">@L["nav.logout"]</MudButton>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Href="/login" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Login">@L["nav.login"]</MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
+
+        <!-- Sprachumschalter -->
+        <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
+            <MudButton Color="@(L.Lang == "en" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("en"))'>EN</MudButton>
+            <MudButton Color="@(L.Lang == "de" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("de"))'>DE</MudButton>
+        </MudButtonGroup>
+
+        <!-- Dark/Light -->
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                       Color="Color.Inherit" Title='@L["header.theme"]' OnClick="ToggleDarkAsync" />
+    </MudAppBar>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+            @Body
+            <FooterComponent />
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui">
+    An error has occurred.
+    <a href="" class="reload">Reload</a>
+</div>
+
+@code {
+    private bool _isDarkMode = true;
+    private const string DarkKey = "qspot_dark";
+
+    private string AppBarStyle => _isDarkMode
+        ? "background-color:#0d1117; color:#e0e0e0;"
+        : "background-color:#f5f5f5; color:#1a1a2e;";
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#7e6fff",
+            Secondary = "#4EE0FC",
+            Tertiary = "#4EE0FC",
+            Background = "#ffffff",
+            AppbarBackground = "#f5f5f5",
+            AppbarText = "#1a1a2e",
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#7e6fff",
+            Secondary = "#4EE0FC",
+            Tertiary = "#4EE0FC",
+            Background = "#101820",
+            AppbarBackground = "#0d1117",
+            AppbarText = "#e0e0e0",
+            Surface = "#1a2332",
+            DrawerBackground = "#0d1117",
+        }
+    };
+
+    protected override void OnInitialized() => L.Changed += OnChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await L.InitAsync();
+        var dark = await JS.InvokeAsync<string?>("localStorage.getItem", DarkKey);
+        if (dark is "false") _isDarkMode = false;
+        StateHasChanged();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task SetLangAsync(string lang) => await L.SetAsync(lang);
+
+    private async Task ToggleDarkAsync()
+    {
+        _isDarkMode = !_isDarkMode;
+        await JS.InvokeVoidAsync("localStorage.setItem", DarkKey, _isDarkMode ? "true" : "false");
+    }
+
+    private async Task LogoutAsync()
+    {
+        await Api.LogoutAsync();
+        ((JwtAuthStateProvider)AuthProvider).NotifyChanged();
+        Nav.NavigateTo("/");
+    }
+
+    public void Dispose() => L.Changed -= OnChanged;
+}

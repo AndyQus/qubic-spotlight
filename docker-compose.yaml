@@ -1,0 +1,19 @@
+services:
+  qubic_spotlight:
+    image: andyqus/qubic_spotlight:latest
+    container_name: qubic_spotlight
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Production
+      - DATA_DIR=/data
+      - LITEDB_FILE=spotlight.db
+      # Werte kommen aus der .env-Datei daneben (NICHT im Repo!).
+      # Die ":?" sorgen dafür, dass der Start abbricht, wenn ein Wert fehlt.
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET fehlt in .env}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@qubic.org}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD fehlt in .env}
+    ports:
+      - "8080:8080"
+    volumes:
+      - /root/spotlight/data:/data
+    restart: unless-stopped

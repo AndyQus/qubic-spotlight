@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "_hinweis": "Diese Datei zu 'launchSettings.json' kopieren und lokale Werte setzen. launchSettings.json ist per .gitignore ausgeschlossen.",
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "http://localhost:5080",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "JWT_SECRET": "dev-secret-change-me-min-32-characters-long",
+        "ADMIN_EMAIL": "admin@qubic.local",
+        "ADMIN_PASSWORD": "changeme"
+      }
+    }
+  }
+}

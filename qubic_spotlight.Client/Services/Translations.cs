@@ -1,0 +1,219 @@
+namespace qubic_spotlight.Client.Services;
+
+// Alle UI-Texte in Englisch (Default) und Deutsch. Neue Strings einfach hier
+// ergänzen – ein Schlüssel, zwei Sprachen.
+public static class Translations
+{
+    public static string Get(string lang, string key)
+    {
+        var table = lang == "de" ? De : En;
+        return table.TryGetValue(key, out var v) ? v : key;
+    }
+
+    private static readonly Dictionary<string, string> En = new()
+    {
+        // Header / Navigation
+        ["nav.dashboard"] = "Dashboard",
+        ["nav.ads"] = "Ads",
+        ["nav.embed"] = "Embed",
+        ["nav.users"] = "Users",
+        ["nav.login"] = "Login",
+        ["nav.logout"] = "Logout",
+        ["header.theme"] = "Toggle light/dark",
+
+        // Dashboard
+        ["dash.noAds"] = "No ads yet.",
+        ["stat.price"] = "Price",
+        ["stat.marketcap"] = "Market cap",
+        ["stat.supply"] = "Supply",
+        ["stat.addresses"] = "Addresses",
+        ["stat.epoch"] = "Epoch",
+        ["stat.tick"] = "Tick",
+        ["stat.quality"] = "Quality",
+        ["stat.burned"] = "Burned",
+
+        // Login
+        ["login.title"] = "Login",
+        ["login.email"] = "Email",
+        ["login.password"] = "Password",
+        ["login.signin"] = "Sign in",
+        ["login.failed"] = "Login failed.",
+
+        // Ads list
+        ["ads.title"] = "Ads",
+        ["ads.new"] = "New ad",
+        ["ads.ownHint"] = "You manage your own ads (max. {0} active).",
+        ["col.title"] = "Title",
+        ["col.ecosystem"] = "Ecosystem",
+        ["col.start"] = "Start",
+        ["col.expiry"] = "Expiry",
+        ["col.active"] = "Active",
+        ["col.impressions"] = "Impr.",
+        ["col.clicks"] = "Clicks",
+        ["ads.deleteTitle"] = "Delete?",
+        ["ads.deleteBody"] = "Really delete ad \"{0}\"?",
+        ["dlg.newAd"] = "New ad",
+        ["dlg.editAd"] = "Edit ad",
+
+        // Ad dialog
+        ["addlg.headline"] = "Headline",
+        ["addlg.desc"] = "Short description",
+        ["addlg.link"] = "Link to page",
+        ["addlg.imageUrl"] = "Image URL (or upload)",
+        ["addlg.start"] = "Start date",
+        ["addlg.expiry"] = "Expiry date (optional)",
+        ["addlg.ecosystem"] = "Ecosystem group",
+        ["addlg.order"] = "Order",
+        ["addlg.active"] = "Active",
+        ["addlg.uploadFail"] = "Upload failed (type/size?).",
+
+        // Users
+        ["users.title"] = "Users",
+        ["users.new"] = "New user",
+        ["col.email"] = "Email",
+        ["col.roles"] = "Roles",
+        ["col.apikey"] = "API key",
+        ["users.deleteBody"] = "Really delete user \"{0}\"?",
+        ["users.apikeyTitle"] = "New API key",
+        ["users.apikeyBody"] = "Please copy now – shown only once:",
+        ["users.regenKey"] = "Regenerate API key",
+        ["dlg.newUser"] = "New user",
+        ["dlg.editUser"] = "Edit user",
+        ["userdlg.password"] = "Password",
+        ["userdlg.passwordNew"] = "New password (optional)",
+        ["userdlg.roles"] = "Roles",
+        ["userdlg.ecosystemGroup"] = "Ecosystem group (for partner)",
+
+        // Embed
+        ["embed.title"] = "Embed on other websites",
+        ["embed.intro"] = "Add one line to the foreign page's HTML. The widget renders as its own layer on top of the page and does not affect its layout.",
+        ["embed.mode"] = "Display",
+        ["embed.position"] = "Position",
+        ["embed.theme"] = "Theme",
+        ["embed.interval"] = "Interval (ms)",
+        ["embed.max"] = "Max. ads",
+        ["embed.closable"] = "Close button",
+        ["embed.snippet"] = "Snippet",
+        ["embed.copy"] = "Copy snippet",
+        ["embed.copied"] = "Snippet copied.",
+        ["embed.apikeyTitle"] = "My API key (for automation)",
+        ["embed.apikeyHint"] = "For scripts/CI: call /api/my/ads with header X-Api-Key: <key>.",
+        ["embed.apikeyBtn"] = "Regenerate API key",
+        ["embed.apikeyOnce"] = "Copy now (shown only once):",
+
+        // Common / messages
+        ["common.cancel"] = "Cancel",
+        ["common.save"] = "Save",
+        ["common.delete"] = "Delete",
+        ["msg.saved"] = "Saved.",
+        ["msg.deleted"] = "Deleted.",
+        ["msg.error"] = "Error.",
+
+        // Footer
+        ["footer.disclaimer.label"] = "Disclaimer:",
+        ["footer.disclaimer.beta"] = "This application is currently in beta status.",
+        ["footer.disclaimer.data"] = "Network data is retrieved from the public RPC endpoint",
+        ["footer.disclaimer.noguarantee"] = "We do not guarantee the completeness, accuracy, or availability of the data.",
+        ["footer.disclaimer.demo"] = "Use it for demonstration and analysis purposes only.",
+        ["footer.sponsored"] = "Qubic – Sponsored by AndyQus",
+    };
+
+    private static readonly Dictionary<string, string> De = new()
+    {
+        ["nav.dashboard"] = "Dashboard",
+        ["nav.ads"] = "Anzeigen",
+        ["nav.embed"] = "Embed",
+        ["nav.users"] = "Benutzer",
+        ["nav.login"] = "Login",
+        ["nav.logout"] = "Logout",
+        ["header.theme"] = "Hell/Dunkel umschalten",
+
+        ["dash.noAds"] = "Noch keine Anzeigen vorhanden.",
+        ["stat.price"] = "Preis",
+        ["stat.marketcap"] = "Market Cap",
+        ["stat.supply"] = "Supply",
+        ["stat.addresses"] = "Adressen",
+        ["stat.epoch"] = "Epoche",
+        ["stat.tick"] = "Tick",
+        ["stat.quality"] = "Qualität",
+        ["stat.burned"] = "Burned",
+
+        ["login.title"] = "Login",
+        ["login.email"] = "E-Mail",
+        ["login.password"] = "Passwort",
+        ["login.signin"] = "Anmelden",
+        ["login.failed"] = "Login fehlgeschlagen.",
+
+        ["ads.title"] = "Anzeigen",
+        ["ads.new"] = "Neue Anzeige",
+        ["ads.ownHint"] = "Du verwaltest deine eigenen Anzeigen (max. {0} aktive).",
+        ["col.title"] = "Titel",
+        ["col.ecosystem"] = "Ecosystem",
+        ["col.start"] = "Start",
+        ["col.expiry"] = "Ablauf",
+        ["col.active"] = "Aktiv",
+        ["col.impressions"] = "Impr.",
+        ["col.clicks"] = "Klicks",
+        ["ads.deleteTitle"] = "Löschen?",
+        ["ads.deleteBody"] = "Anzeige \"{0}\" wirklich löschen?",
+        ["dlg.newAd"] = "Neue Anzeige",
+        ["dlg.editAd"] = "Anzeige bearbeiten",
+
+        ["addlg.headline"] = "Überschrift",
+        ["addlg.desc"] = "Kurzbeschreibung",
+        ["addlg.link"] = "Link zur Seite",
+        ["addlg.imageUrl"] = "Bild-URL (oder hochladen)",
+        ["addlg.start"] = "Startdatum",
+        ["addlg.expiry"] = "Ablaufdatum (optional)",
+        ["addlg.ecosystem"] = "Ecosystem-Gruppe",
+        ["addlg.order"] = "Reihenfolge",
+        ["addlg.active"] = "Aktiv",
+        ["addlg.uploadFail"] = "Upload fehlgeschlagen (Typ/Größe?).",
+
+        ["users.title"] = "Benutzer",
+        ["users.new"] = "Neuer Benutzer",
+        ["col.email"] = "E-Mail",
+        ["col.roles"] = "Rollen",
+        ["col.apikey"] = "API-Key",
+        ["users.deleteBody"] = "Benutzer \"{0}\" wirklich löschen?",
+        ["users.apikeyTitle"] = "Neuer API-Key",
+        ["users.apikeyBody"] = "Bitte jetzt kopieren – wird nur einmal angezeigt:",
+        ["users.regenKey"] = "API-Key neu erzeugen",
+        ["dlg.newUser"] = "Neuer Benutzer",
+        ["dlg.editUser"] = "Benutzer bearbeiten",
+        ["userdlg.password"] = "Passwort",
+        ["userdlg.passwordNew"] = "Neues Passwort (optional)",
+        ["userdlg.roles"] = "Rollen",
+        ["userdlg.ecosystemGroup"] = "Ecosystem-Gruppe (bei Partner)",
+
+        ["embed.title"] = "Auf anderen Webseiten einbinden",
+        ["embed.intro"] = "Eine Zeile ins HTML der Fremdseite einfügen. Das Widget legt sich als eigene Ebene über die Seite und greift nicht ins Layout ein.",
+        ["embed.mode"] = "Darstellung",
+        ["embed.position"] = "Position",
+        ["embed.theme"] = "Theme",
+        ["embed.interval"] = "Intervall (ms)",
+        ["embed.max"] = "Max. Anzeigen",
+        ["embed.closable"] = "Schließen-Button",
+        ["embed.snippet"] = "Snippet",
+        ["embed.copy"] = "Snippet kopieren",
+        ["embed.copied"] = "Snippet kopiert.",
+        ["embed.apikeyTitle"] = "Mein API-Key (für Automatisierung)",
+        ["embed.apikeyHint"] = "Für Skripte/CI: Aufrufe mit Header X-Api-Key: <key> gegen /api/my/ads.",
+        ["embed.apikeyBtn"] = "API-Key neu erzeugen",
+        ["embed.apikeyOnce"] = "Jetzt kopieren (nur einmal sichtbar):",
+
+        ["common.cancel"] = "Abbrechen",
+        ["common.save"] = "Speichern",
+        ["common.delete"] = "Löschen",
+        ["msg.saved"] = "Gespeichert.",
+        ["msg.deleted"] = "Gelöscht.",
+        ["msg.error"] = "Fehler.",
+
+        ["footer.disclaimer.label"] = "Disclaimer:",
+        ["footer.disclaimer.beta"] = "Diese Anwendung befindet sich derzeit im Beta-Status.",
+        ["footer.disclaimer.data"] = "Die Netzwerkdaten stammen vom öffentlichen RPC-Endpunkt",
+        ["footer.disclaimer.noguarantee"] = "Wir übernehmen keine Gewähr für Vollständigkeit, Richtigkeit oder Verfügbarkeit der Daten.",
+        ["footer.disclaimer.demo"] = "Nutzung nur zu Demonstrations- und Analysezwecken.",
+        ["footer.sponsored"] = "Qubic – Sponsored by AndyQus",
+    };
+}
