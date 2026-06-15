@@ -21,7 +21,14 @@ public class LiteDbContext : IDisposable
             filename = Path.Combine(dataDir, dbFile);
         }
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(filename))!);
-        _db = new LiteDatabase(filename);
+        // Shared-Verbindung: mehrere Prozesse dürfen dieselbe DB öffnen (z. B.
+        // dotnet watch + paralleler F5-Start im Dev). Verhindert den exklusiven
+        // Datei-Lock von LiteDB ("being used by another process").
+        _db = new LiteDatabase(new ConnectionString
+        {
+            Filename = filename,
+            Connection = ConnectionType.Shared,
+        });
         EnsureIndexes();
     }
 

@@ -17,7 +17,7 @@
 
 @if (!_manager)
 {
-    <MudText Class="mb-3" Style="color:#b9c2cf;">@L.T("ads.ownHint", SpotlightLimits.MaxActiveAdsPerOwner)</MudText>
+    <MudText Class="mb-3" Style="color:var(--mud-palette-text-secondary);">@L.T("ads.ownHint", SpotlightLimits.MaxActiveAdsPerOwner)</MudText>
 }
 
 <MudTable Items="_ads" Hover="true" Striped="true" Loading="_loading" Dense="true">
@@ -26,6 +26,7 @@
         <MudTh>@L["col.ecosystem"]</MudTh>
         <MudTh>@L["col.start"]</MudTh>
         <MudTh>@L["col.expiry"]</MudTh>
+        <MudTh>@L["col.priority"]</MudTh>
         <MudTh>@L["col.active"]</MudTh>
         <MudTh>@L["col.impressions"]</MudTh>
         <MudTh>@L["col.clicks"]</MudTh>
@@ -36,6 +37,19 @@
         <MudTd>@context.Ecosystem</MudTd>
         <MudTd>@context.StartDate.ToString("yyyy-MM-dd")</MudTd>
         <MudTd>@(context.ExpiryDate?.ToString("yyyy-MM-dd") ?? "–")</MudTd>
+        <MudTd>
+            @if (context.Priority)
+            {
+                <MudTooltip Text="@PriorityTooltip(context)">
+                    <MudIcon Icon="@Icons.Material.Filled.PushPin"
+                             Color="@(IsPinnedNow(context) ? Color.Secondary : Color.Default)" Size="Size.Small" />
+                </MudTooltip>
+            }
+            else
+            {
+                <span>–</span>
+            }
+        </MudTd>
         <MudTd>
             <MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
                      Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small" />
@@ -53,6 +67,19 @@
     private List<Ad> _ads = new();
     private bool _manager;
     private bool _loading = true;
+
+    // Ist die Anzeige gerade aktiv gepinnt (Flag + im Zeitfenster + nicht abgelaufen)?
+    private static bool IsPinnedNow(Ad a)
+    {
+        if (!a.Priority) return false;
+        var now = DateTime.UtcNow;
+        if (a.PriorityStart is { } s && now < s) return false;
+        if (a.PriorityEnd is { } e && now > e) return false;
+        return a.PinnedUntil is { } until && now < until;
+    }
+
+    private string PriorityTooltip(Ad a)
+        => IsPinnedNow(a) ? L["ads.pinnedNow"] : L["ads.pinnedScheduled"];
 
     protected override async Task OnInitializedAsync()
     {

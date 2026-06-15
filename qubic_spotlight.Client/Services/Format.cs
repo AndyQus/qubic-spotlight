@@ -27,7 +27,15 @@ public static class Format
     public static string Price(double price)
     {
         if (price <= 0) return "$0";
-        if (price < 0.001) return "$" + price.ToString("0.0e-0", CultureInfo.InvariantCulture);
+        // Sehr kleine Preise (z. B. Qubic ~0,0000005) voll dezimal anzeigen,
+        // nicht in wissenschaftlicher Notation. Nachkommastellen so wählen,
+        // dass ~3 signifikante Stellen sichtbar sind.
+        if (price < 1)
+        {
+            var decimals = Math.Max(2, 2 - (int)Math.Floor(Math.Log10(price)));
+            var format = "0." + new string('#', decimals);
+            return "$" + price.ToString(format, CultureInfo.InvariantCulture);
+        }
         return "$" + price.ToString("0.######", CultureInfo.InvariantCulture);
     }
 

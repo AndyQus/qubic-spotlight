@@ -44,6 +44,17 @@ public class Ad
     public string OwnerUserId { get; set; } = "";
     public int SortOrder { get; set; }
     public AdStatus Status { get; set; } = AdStatus.Approved;
+
+    // ── Priorisierung / "Pin" (nur Admin + Marketing) ────────────────────────
+    // Wird das Flag gesetzt, übernimmt die Anzeige innerhalb des Zeitfensters
+    // [PriorityStart, PriorityEnd] das Widget: ab Aktivierung für PriorityMinutes
+    // global fixiert (PinnedUntil), danach rotieren die Anzeigen wieder normal.
+    public bool Priority { get; set; }
+    public int PriorityMinutes { get; set; } = 30;
+    public DateTime? PriorityStart { get; set; }
+    public DateTime? PriorityEnd { get; set; }
+    public DateTime? PinnedUntil { get; set; }   // berechnet beim Speichern (UTC)
+
     public long ImpressionCount { get; set; }
     public long ClickCount { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -86,6 +97,12 @@ public class AdInput
     public bool IsActive { get; set; } = true;
     public string? Ecosystem { get; set; }
     public int SortOrder { get; set; }
+
+    // Priorisierung / "Pin" – nur von Admin/Marketing setzbar (siehe Ad).
+    public bool Priority { get; set; }
+    public int PriorityMinutes { get; set; } = 30;
+    public DateTime? PriorityStart { get; set; }
+    public DateTime? PriorityEnd { get; set; }
 }
 
 // Öffentliche Anzeige fürs Embed-Widget und Dashboard (nur das Nötige).
@@ -97,6 +114,11 @@ public class PublicAd
     public string LinkUrl { get; set; } = "";
     public string? ImageUrl { get; set; }
     public string? Ecosystem { get; set; }
+
+    // Ist diese Anzeige aktuell gepinnt? Dann fixiert das Widget die Pin-Gruppe
+    // und lädt nach PinnedUntil neu, um wieder zu rotieren.
+    public bool Pinned { get; set; }
+    public DateTime? PinnedUntil { get; set; }
 }
 
 public class LoginRequest

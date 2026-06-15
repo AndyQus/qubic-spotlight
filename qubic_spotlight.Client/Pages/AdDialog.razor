@@ -38,6 +38,29 @@
             <MudSwitch @bind-Value="_input.IsActive" Color="Color.Primary" Label='@L["addlg.active"]' />
         </div>
 
+        @* ── Priorisierung / "Pin" – nur Admin + Marketing ───────────────────── *@
+        @if (Manager)
+        {
+            <MudDivider Class="my-4" />
+            <MudSwitch @bind-Value="_input.Priority" Color="Color.Secondary" Label='@L["addlg.priority"]' />
+            <MudText Typo="Typo.caption" Class="d-block mb-2" Style="color:var(--mud-palette-text-secondary);">
+                @L["addlg.priorityHint"]
+            </MudText>
+            @if (_input.Priority)
+            {
+                <MudNumericField @bind-Value="_input.PriorityMinutes" Label='@L["addlg.priorityMinutes"]'
+                                 Min="1" Max="1440" Variant="Variant.Outlined" Class="mb-3" Style="width:200px;" />
+                <div class="d-flex gap-3 mb-2">
+                    <MudDatePicker @bind-Date="_prioStartDate" Label='@L["addlg.priorityStart"]' Variant="Variant.Outlined" />
+                    <MudTimePicker @bind-Time="_prioStartTime" Label='@L["addlg.priorityStartTime"]' Variant="Variant.Outlined" />
+                </div>
+                <div class="d-flex gap-3 mb-2">
+                    <MudDatePicker @bind-Date="_prioEndDate" Label='@L["addlg.priorityEnd"]' Variant="Variant.Outlined" />
+                    <MudTimePicker @bind-Time="_prioEndTime" Label='@L["addlg.priorityEndTime"]' Variant="Variant.Outlined" />
+                </div>
+            }
+        }
+
         @if (_error is not null)
         {
             <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
@@ -60,6 +83,12 @@
     private bool _busy, _uploading;
     private string? _error;
 
+    // Prioritäts-Zeitfenster: getrennte Datum-/Uhrzeit-Picker (lokale Zeit).
+    private DateTime? _prioStartDate;
+    private TimeSpan? _prioStartTime;
+    private DateTime? _prioEndDate;
+    private TimeSpan? _prioEndTime;
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
@@ -75,11 +104,34 @@
                 ExpiryDate = Ad.ExpiryDate,
                 IsActive = Ad.IsActive,
                 Ecosystem = Ad.Ecosystem,
-                SortOrder = Ad.SortOrder
+                SortOrder = Ad.SortOrder,
+                Priority = Ad.Priority,
+                PriorityMinutes = Ad.PriorityMinutes,
+                PriorityStart = Ad.PriorityStart,
+                PriorityEnd = Ad.PriorityEnd
             };
             _start = Ad.StartDate;
             _expiry = Ad.ExpiryDate;
+            SplitLocal(Ad.PriorityStart, out _prioStartDate, out _prioStartTime);
+            SplitLocal(Ad.PriorityEnd, out _prioEndDate, out _prioEndTime);
         }
+    }
+
+    // UTC-Zeitstempel in lokale Datum-/Uhrzeit-Anteile für die Picker zerlegen.
+    private static void SplitLocal(DateTime? utc, out DateTime? date, out TimeSpan? time)
+    {
+        if (utc is null) { date = null; time = null; return; }
+        var local = DateTime.SpecifyKind(utc.Value, DateTimeKind.Utc).ToLocalTime();
+        date = local.Date;
+        time = local.TimeOfDay;
+    }
+
+    // Lokale Datum-/Uhrzeit-Picker zu einem UTC-Zeitstempel zusammenführen.
+    private static DateTime? CombineUtc(DateTime? date, TimeSpan? time)
+    {
+        if (date is null) return null;
+        var local = DateTime.SpecifyKind(date.Value.Date + (time ?? TimeSpan.Zero), DateTimeKind.Local);
+        return local.ToUniversalTime();
     }
 
     private async Task UploadAsync(InputFileChangeEventArgs e)
@@ -98,6 +150,23 @@
         _error = null;
         _input.StartDate = _start ?? DateTime.UtcNow.Date;
         _input.ExpiryDate = _expiry;
+
+        // Prioritäts-Zeitfenster aus den lokalen Pickern in UTC übernehmen.
+        if (Manager && _input.Priority)
+        {
+            _input.PriorityStart = CombineUtc(_prioStartDate, _prioStartTime);
+            _input.PriorityEnd = CombineUtc(_prioEndDate, _prioEndTime);
+            if (_input.PriorityStart is { } ps && _input.PriorityEnd is { } pe && pe <= ps)
+            {
+                _busy = false;
+                _error = L["addlg.priorityRange"];
+                return;
+            }
+        }
+        else
+        {
+            _input.Priority = false;
+        }
 
         var (ok, error) = await Api.SaveAdAsync(_input, Ad?.Id, Manager);
         _busy = false;

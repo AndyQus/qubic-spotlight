@@ -9,7 +9,7 @@
 <PageTitle>Embed – Qubic Spotlight</PageTitle>
 
 <MudText Typo="Typo.h4" Class="mb-2" Style="font-weight:500;">@L["embed.title"]</MudText>
-<MudText Class="mb-4" Style="color:#b9c2cf;">@L["embed.intro"]</MudText>
+<MudText Class="mb-4" Style="color:var(--mud-palette-text-secondary);">@L["embed.intro"]</MudText>
 
 <MudGrid>
     <MudItem xs="12" md="5">
@@ -25,11 +25,23 @@
                 <MudSelectItem Value="@("bottom")">bottom</MudSelectItem>
                 <MudSelectItem Value="@("top")">top</MudSelectItem>
             </MudSelect>
+            @* Dark/Light-Auswahl vorerst ausgeblendet – stattdessen Hintergrundfarbe wählbar.
             <MudSelect T="string" @bind-Value="_theme" Label='@L["embed.theme"]' Variant="Variant.Outlined" Class="mb-3">
                 <MudSelectItem Value="@("auto")">auto</MudSelectItem>
                 <MudSelectItem Value="@("dark")">dark</MudSelectItem>
                 <MudSelectItem Value="@("light")">light</MudSelectItem>
             </MudSelect>
+            *@
+            <MudSelect T="string" @bind-Value="_bg" Label='@L["embed.bg"]' Variant="Variant.Outlined" Class="mb-3">
+                <MudSelectItem Value="@SupportGradient">Standard (Qubic)</MudSelectItem>
+                <MudSelectItem Value="@("")">Theme (auto)</MudSelectItem>
+                <MudSelectItem Value="@("#1a2332")">Dunkel</MudSelectItem>
+                <MudSelectItem Value="@("#ffffff")">Hell</MudSelectItem>
+            </MudSelect>
+            @if (!string.IsNullOrEmpty(_bg))
+            {
+                <div style="height:28px;border-radius:6px;margin:-4px 0 12px;border:1px solid var(--mud-palette-lines-default);background:@_bg;"></div>
+            }
             <MudNumericField @bind-Value="_interval" Label='@L["embed.interval"]' Variant="Variant.Outlined" Class="mb-3" />
             <MudNumericField @bind-Value="_max" Label='@L["embed.max"]' Variant="Variant.Outlined" Class="mb-3" />
             <MudSwitch @bind-Value="_closable" Color="Color.Primary" Label='@L["embed.closable"]' />
@@ -38,16 +50,24 @@
 
     <MudItem xs="12" md="7">
         <MudText Typo="Typo.subtitle1">@L["embed.snippet"]</MudText>
-        <MudPaper Class="pa-4 mb-2" Style="background:#0d1117;">
-            <pre style="margin:0; white-space:pre-wrap; word-break:break-all; color:#9fe1cb; font-size:13px;">@Snippet</pre>
+        <MudPaper Class="pa-4 mb-2" Style="background:var(--mud-palette-background-gray);">
+            <pre style="margin:0; white-space:pre-wrap; word-break:break-all; color:var(--mud-palette-success); font-size:13px;">@Snippet</pre>
         </MudPaper>
         <MudButton OnClick="CopyAsync" Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.ContentCopy">@L["embed.copy"]</MudButton>
 
+        @* ── Live-Vorschau: aktualisiert sich automatisch nach jeder Änderung ── *@
+        <MudText Typo="Typo.subtitle1" Class="mt-6 mb-2">@L["embed.preview"]</MudText>
+        <MudPaper Outlined="true" Class="pa-4"
+                  Style="min-height:160px;display:flex;align-items:center;justify-content:center;
+                         background:repeating-conic-gradient(#0000 0% 25%, rgba(127,127,127,.06) 0% 50%) 50%/20px 20px;">
+            <div id="qs-preview" style="width:100%;display:flex;justify-content:center;"></div>
+        </MudPaper>
+
         <MudDivider Class="my-6" />
 
         <MudText Typo="Typo.subtitle1">@L["embed.apikeyTitle"]</MudText>
-        <MudText Class="mb-2" Style="color:#b9c2cf;">@L["embed.apikeyHint"]</MudText>
+        <MudText Class="mb-2" Style="color:var(--mud-palette-text-secondary);">@L["embed.apikeyHint"]</MudText>
         <MudButton OnClick="RegenerateKeyAsync" Variant="Variant.Outlined" Color="Color.Secondary"
                    StartIcon="@Icons.Material.Filled.Key">@L["embed.apikeyBtn"]</MudButton>
         @if (_apiKey is not null)
@@ -60,25 +80,75 @@
 </MudGrid>
 
 @code {
+    // Hintergrund-Verlauf aus dem Support-Banner (qubic_ledger) – Standard.
+    private const string SupportGradient = "linear-gradient(90deg, #f59e0b, #ea580c, #f59e0b)";
+
     private string _mode = "slide-panel";
     private string _position = "right";
     private string _theme = "auto";
-    private int _interval = 5000;
+    private string _bg = SupportGradient;
+    private int _interval = 10000;
     private int _max = 10;
     private bool _closable = true;
     private string? _apiKey;
 
     private string BaseUrl => Nav.BaseUri.TrimEnd('/');
 
+    // data-bg nur ausgeben, wenn ein Hintergrund gewählt wurde.
+    private string BgAttr => string.IsNullOrEmpty(_bg)
+        ? ""
+        : $"\n        data-bg=\"{_bg}\"";
+
     private string Snippet =>
 $@"<script src=""{BaseUrl}/spotlight.js""
         data-mode=""{_mode}""
         data-position=""{_position}""
         data-interval=""{_interval}""
-        data-theme=""{_theme}""
+        data-theme=""{_theme}""{BgAttr}
         data-max=""{_max}""
         data-closable=""{(_closable ? "true" : "false")}""
         async></script>";
+
+    // ── Live-Vorschau: nach jedem Render prüfen, ob sich die Einstellungen
+    //    geändert haben, und die Vorschau entprellt neu aufbauen. ──────────────
+    private string? _lastPreviewSig;
+    private System.Timers.Timer? _debounce;
+
+    private string ConfigSig => $"{_mode}|{_position}|{_interval}|{_theme}|{_bg}|{_max}|{_closable}";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (ConfigSig == _lastPreviewSig && !firstRender) return;
+        _lastPreviewSig = ConfigSig;
+
+        _debounce?.Stop();
+        _debounce?.Dispose();
+        _debounce = new System.Timers.Timer(firstRender ? 200 : 350) { AutoReset = false };
+        _debounce.Elapsed += async (_, _) => await InvokeAsync(RenderPreviewAsync);
+        _debounce.Start();
+    }
+
+    private async Task RenderPreviewAsync()
+    {
+        await JS.InvokeVoidAsync("qubicSpotlightPreview.render", "qs-preview", new
+        {
+            baseUrl = BaseUrl,
+            mode = _mode,
+            position = _position,
+            interval = _interval,
+            theme = _theme,
+            bg = _bg,
+            max = _max,
+            closable = _closable
+        });
+    }
+
+    public override void Dispose()
+    {
+        _debounce?.Dispose();
+        base.Dispose();
+    }
 
     private async Task CopyAsync()
     {

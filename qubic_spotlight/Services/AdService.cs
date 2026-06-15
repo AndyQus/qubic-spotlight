@@ -18,9 +18,18 @@ public class AdService
     public Ad? Get(Guid id) => _db.GetAd(id);
 
     // Öffentliche Liste fürs Widget/Dashboard, gemischt für faire Sichtbarkeit.
+    // Sind gerade Anzeigen "gepinnt" (Priorität, im Zeitfenster, noch nicht
+    // abgelaufen), übernehmen ausschließlich diese – sie rotieren untereinander,
+    // alle übrigen pausieren, bis der Pin abgelaufen ist.
     public List<PublicAd> Visible(int max = 50)
     {
-        var ads = _db.GetVisibleAds()
+        var now = DateTime.UtcNow;
+        var all = _db.GetVisibleAds();
+
+        var pinned = all.Where(a => IsPinnedNow(a, now)).ToList();
+        var pool = pinned.Count > 0 ? pinned : all;
+
+        var ads = pool
             .OrderBy(_ => Random.Shared.Next())   // Rotation pro Abruf
             .Take(max);
 
@@ -31,8 +40,22 @@ public class AdService
             Description = a.Description,
             LinkUrl = a.LinkUrl,
             ImageUrl = a.ImageUrl,
-            Ecosystem = a.Ecosystem
+            Ecosystem = a.Ecosystem,
+            Pinned = pinned.Count > 0,
+            // Frühestes Pin-Ende: danach soll das Widget neu laden und wieder rotieren.
+            PinnedUntil = pinned.Count > 0 ? pinned.Min(p => p.PinnedUntil) : null
         }).ToList();
+    }
+
+    // Anzeige ist jetzt aktiv gepinnt, wenn das Flag gesetzt ist, die aktuelle
+    // Zeit im [PriorityStart, PriorityEnd]-Fenster liegt und PinnedUntil (ab
+    // Aktivierung gesetzt) noch in der Zukunft liegt.
+    private static bool IsPinnedNow(Ad a, DateTime now)
+    {
+        if (!a.Priority) return false;
+        if (a.PriorityStart is { } s && now < s) return false;
+        if (a.PriorityEnd is { } e && now > e) return false;
+        return a.PinnedUntil is { } until && now < until;
     }
 
     // isManager = Admin oder Marketing (dürfen alles, ohne Limit).
@@ -83,5 +106,29 @@ public class AdService
         ad.IsActive = input.IsActive;
         ad.Ecosystem = string.IsNullOrWhiteSpace(input.Ecosystem) ? null : input.Ecosystem.Trim();
         ad.SortOrder = input.SortOrder;
+
+        ApplyPriority(ad, input);
+    }
+
+    // Übernimmt die Priorisierung und berechnet PinnedUntil neu. Der Pin läuft
+    // ab Fensterstart (oder jetzt, falls das Fenster schon offen ist) für
+    // PriorityMinutes – jedoch nie über PriorityEnd hinaus.
+    private static void ApplyPriority(Ad ad, AdInput input)
+    {
+        ad.Priority = input.Priority;
+        ad.PriorityMinutes = Math.Clamp(input.PriorityMinutes, 1, 24 * 60);
+        ad.PriorityStart = input.PriorityStart;
+        ad.PriorityEnd = input.PriorityEnd;
+
+        if (!input.Priority)
+        {
+            ad.PinnedUntil = null;
+            return;
+        }
+
+        var begin = input.PriorityStart is { } s && s > DateTime.UtcNow ? s : DateTime.UtcNow;
+        var until = begin.AddMinutes(ad.PriorityMinutes);
+        if (input.PriorityEnd is { } e && until > e) until = e;
+        ad.PinnedUntil = until;
     }
 }

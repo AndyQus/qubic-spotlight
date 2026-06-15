@@ -9,6 +9,7 @@
         data-position="right"
         data-interval="5000"
         data-theme="auto"
+        data-bg="linear-gradient(90deg, #f59e0b, #ea580c, #f59e0b)"
         data-max="10"
         data-closable="true"
         async></script>
@@ -35,14 +36,14 @@
                  AutoCycleTime="TimeSpan.FromSeconds(5)" TData="PublicAd" ItemsSource="_ads">
         <ItemTemplate Context="ad">
             <a href="@ClickUrl(ad)" target="_blank" rel="noopener"
-               style="display:flex; height:100%; text-decoration:none; background:#1a2332;">
+               style="display:flex; height:100%; text-decoration:none; background:var(--mud-palette-surface);">
                 @if (!string.IsNullOrEmpty(ad.ImageUrl))
                 {
                     <img src="@ad.ImageUrl" alt="" style="width:300px; object-fit:cover;" />
                 }
                 <div style="padding:24px; display:flex; flex-direction:column; justify-content:center;">
-                    <h2 style="margin:0 0 8px; color:#f2f5fa; font-weight:500;">@ad.Title</h2>
-                    <p style="margin:0; color:#b9c2cf; max-width:560px;">@ad.Description</p>
+                    <h2 style="margin:0 0 8px; color:var(--mud-palette-text-primary); font-weight:500;">@ad.Title</h2>
+                    <p style="margin:0; color:var(--mud-palette-text-secondary); max-width:560px;">@ad.Description</p>
                     @if (!string.IsNullOrEmpty(ad.Ecosystem))
                     {
                         <span class="qs-ad-eco">@ad.Ecosystem</span>
@@ -74,7 +75,7 @@
 }
 else if (_loaded)
 {
-    <MudText Class="pa-8" Style="color:#b9c2cf;">@L["dash.noAds"]</MudText>
+    <MudText Class="pa-8" Style="color:var(--mud-palette-text-secondary);">@L["dash.noAds"]</MudText>
 }
 
 @code {

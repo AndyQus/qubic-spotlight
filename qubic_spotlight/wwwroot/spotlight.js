@@ -23,6 +23,7 @@
     interval: parseInt(d.interval || "5000", 10),
     speed: parseInt(d.speed || "40", 10),    // px/s bei edge-marquee
     theme: d.theme || "auto",                // auto | dark | light
+    bg: d.bg || "",                          // optionaler Hintergrund (Farbe/Gradient), überschreibt Theme-Hintergrund
     max: parseInt(d.max || "10", 10),
     closable: (d.closable || "true") !== "false"
   };
@@ -31,6 +32,24 @@
     if (cfg.theme === "dark") return true;
     if (cfg.theme === "light") return false;
     return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+
+  // True nur für einen HELLEN, einfarbigen Hintergrund (#fff, helle Hex/rgb).
+  // Gradienten oder dunkle Farben → false (→ weiße Schrift).
+  function isLightSolid(bg) {
+    if (!bg || /gradient/i.test(bg)) return false;
+    var m = bg.replace(/\s/g, "").match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    var r, g, b;
+    if (m) {
+      var h = m[1];
+      if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+      r = parseInt(h.substr(0, 2), 16); g = parseInt(h.substr(2, 2), 16); b = parseInt(h.substr(4, 2), 16);
+    } else {
+      var rgb = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+      if (!rgb) return false;
+      r = +rgb[1]; g = +rgb[2]; b = +rgb[3];
+    }
+    return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 180;
   }
 
   function clickUrl(ad) { return base + "/api/ads/" + ad.id + "/click"; }
@@ -54,9 +73,14 @@
 
     var dark = isDark();
     var bg = dark ? "#1a2332" : "#ffffff";
-    var border = dark ? "#243246" : "#e2e6ee";
-    var title = dark ? "#f2f5fa" : "#0d1117";
-    var text = dark ? "#b9c2cf" : "#42505f";
+    if (cfg.bg) bg = cfg.bg;   // wählbarer Hintergrund (Farbe oder Gradient) aus data-bg
+    // Dunkle Schrift nur auf einem klar HELLEN, einfarbigen Hintergrund
+    // (z. B. "Hell" #ffffff). Standard-/Qubic-Verlauf, Dark-Karte und jede
+    // andere Farbe → weiße Überschrift + fast-weiße Beschreibung.
+    var lightBg = isLightSolid(bg);
+    var border = lightBg ? "#e2e6ee" : "rgba(255,255,255,.18)";
+    var title = lightBg ? "#0d1117" : "#ffffff";
+    var text = lightBg ? "#42505f" : "#f0f3f8";
     var accent = "#4EE0FC";
 
     var css = document.createElement("style");
@@ -200,9 +224,51 @@
     else { wrap.style.right = m; wrap.style.bottom = m; } // right (default)
   }
 
-  // Los: Anzeigen laden, dann rendern.
-  fetch(base + "/api/ads")
-    .then(function (r) { return r.ok ? r.json() : []; })
-    .then(start)
-    .catch(function () { /* Fremdseite nicht stören */ });
+  // ── Laden + Auto-Resume ────────────────────────────────────────────────────
+  // Das Widget rendert die Anzeigen und lädt periodisch neu. So übernimmt eine
+  // gepinnte (priorisierte) Anzeige automatisch das Widget und gibt es nach
+  // Ablauf (PinnedUntil) wieder frei – ohne dass der Besucher neu laden muss.
+  var currentHost = null;
+  var lastSig = null;
+  var resumeTimer = null;
+
+  // Signatur aus IDs + Pin-Status: nur bei echter Änderung neu rendern (kein Flackern).
+  function signature(ads) {
+    return (ads || []).map(function (a) {
+      return a.id + (a.pinned ? ":p" : "");
+    }).join("|");
+  }
+
+  function render(ads) {
+    var sig = signature(ads);
+    if (sig === lastSig) return;     // nichts geändert → laufende Anzeige nicht stören
+    lastSig = sig;
+    if (currentHost) { currentHost.remove(); currentHost = null; }
+    if (!ads || !ads.length) return;
+    start(ads);
+    currentHost = document.getElementById("qubic-spotlight");
+
+    // Kurz nach Pin-Ablauf gezielt neu laden, damit wieder rotiert wird.
+    if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+    var until = ads.reduce(function (min, a) {
+      if (!a.pinned || !a.pinnedUntil) return min;
+      var t = Date.parse(a.pinnedUntil);
+      return (min === null || t < min) ? t : min;
+    }, null);
+    if (until !== null) {
+      var ms = Math.max(1000, until - Date.now() + 500);
+      resumeTimer = setTimeout(load, ms);
+    }
+  }
+
+  function load() {
+    fetch(base + "/api/ads")
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(render)
+      .catch(function () { /* Fremdseite nicht stören */ });
+  }
+
+  load();
+  // Sicherheits-Poll: fängt neu aktivierte Pins / abgelaufene Fenster ab.
+  setInterval(load, 60000);
 })();

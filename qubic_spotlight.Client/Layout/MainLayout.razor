@@ -14,7 +14,7 @@
 <MudLayout>
     <MudAppBar Elevation="1" Style="@AppBarStyle">
         <a href="/" class="qs-logo">
-            <img src="/qubic-spotlight-logo.svg" alt="Qubic Spotlight" style="height:64px;" />
+            <LogoBanner IsDark="_isDarkMode" />
         </a>
         <MudSpacer />
 
@@ -72,11 +72,16 @@
         PaletteLight = new PaletteLight
         {
             Primary = "#7e6fff",
-            Secondary = "#4EE0FC",
-            Tertiary = "#4EE0FC",
+            Secondary = "#1192a8",
+            Tertiary = "#1192a8",
             Background = "#ffffff",
+            BackgroundGray = "#f0f2f5",
+            Surface = "#f7f9fc",
             AppbarBackground = "#f5f5f5",
             AppbarText = "#1a1a2e",
+            TextPrimary = "#1a1a2e",
+            TextSecondary = "#566073",
+            LinesDefault = "#dfe3ea",
         },
         PaletteDark = new PaletteDark
         {
