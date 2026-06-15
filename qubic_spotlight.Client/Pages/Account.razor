@@ -1,0 +1,172 @@
+@page "/account"
+@attribute [Authorize]
+@inherits LocalizedComponentBase
+@inject SpotlightApi Api
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>@L["account.title"] – Qubic Spotlight</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-4" Style="font-weight:500;">@L["account.title"]</MudText>
+
+@if (_me is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+}
+else
+{
+    <MudGrid>
+        <!-- ── Profil ───────────────────────────────────────────────── -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" Class="mb-3">@L["account.profile"]</MudText>
+
+                <MudField Label='@L["account.email"]' Variant="Variant.Text" Class="mb-2">@_me.Email</MudField>
+
+                <MudText Typo="Typo.caption" Style="color:var(--mud-palette-text-secondary);">@L["account.roles"]</MudText>
+                <div class="mb-3 mt-1">
+                    @if (_me.Roles.Count == 0)
+                    {
+                        <MudText>–</MudText>
+                    }
+                    else
+                    {
+                        @foreach (var r in _me.Roles)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@r</MudChip>
+                        }
+                    }
+                </div>
+
+                <MudField Label='@L["account.ecosystem"]' Variant="Variant.Text">
+                    @(string.IsNullOrWhiteSpace(_me.Ecosystem) ? "–" : _me.Ecosystem)
+                </MudField>
+            </MudPaper>
+        </MudItem>
+
+        <!-- ── Passwort ändern ──────────────────────────────────────── -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" Class="mb-3">@L["account.changePw"]</MudText>
+
+                <MudTextField @bind-Value="_currentPw" Label='@L["account.currentPw"]'
+                              InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_newPw" Label='@L["account.newPw"]'
+                              InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-1"
+                              HelperText='@L["account.pwHint"]' />
+                <MudTextField @bind-Value="_confirmPw" Label='@L["account.confirmPw"]'
+                              InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-3" />
+
+                <MudButton OnClick="ChangePasswordAsync" Variant="Variant.Filled" Color="Color.Primary"
+                           Disabled="_savingPw" StartIcon="@Icons.Material.Filled.Lock">
+                    @L["account.changePwBtn"]
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+
+        <!-- ── API-Key ──────────────────────────────────────────────── -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4" Style="height:100%;">
+                <MudText Typo="Typo.h6" Class="mb-3">@L["account.apikeyTitle"]</MudText>
+                <MudText Class="mb-3" Style="color:var(--mud-palette-text-secondary);">@L["account.apikeyHint"]</MudText>
+
+                @if (_me.HasApiKey)
+                {
+                    <div class="d-flex align-center flex-wrap mb-3" style="gap:12px;">
+                        <MudChip T="string" Icon="@Icons.Material.Filled.Key" Color="Color.Secondary" Variant="Variant.Outlined">
+                            @_me.ApiKeyPreview
+                        </MudChip>
+                        @if (_me.ApiKeyCreatedAt is not null)
+                        {
+                            <MudText Typo="Typo.caption" Style="color:var(--mud-palette-text-secondary);">
+                                @L["account.apikeyCreated"] @_me.ApiKeyCreatedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                            </MudText>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Normal" Class="mb-3">@L["account.apikeyNone"]</MudAlert>
+                }
+
+                <MudButton OnClick="RegenerateKeyAsync" Variant="Variant.Outlined" Color="Color.Secondary"
+                           Disabled="_keyBusy" StartIcon="@Icons.Material.Filled.Autorenew">
+                    @(_me.HasApiKey ? L["account.apikeyRegen"] : L["account.apikeyCreate"])
+                </MudButton>
+
+                @if (_newKey is not null)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-3" Icon="@Icons.Material.Filled.Warning">
+                        <div class="mb-2">@L["account.apikeyOnce"]</div>
+                        <code style="word-break:break-all;display:block;margin-bottom:8px;">@_newKey</code>
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CopyKeyAsync">
+                            @L["account.apikeyCopy"]
+                        </MudButton>
+                    </MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private MeDto? _me;
+
+    private string _currentPw = "";
+    private string _newPw = "";
+    private string _confirmPw = "";
+    private bool _savingPw;
+
+    private string? _newKey;     // voller Key – nur einmalig nach Erzeugung sichtbar
+    private bool _keyBusy;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => _me = await Api.GetMeAsync();
+
+    private async Task ChangePasswordAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_currentPw) || string.IsNullOrWhiteSpace(_newPw))
+        {
+            Snackbar.Add(L["account.pwMissing"], Severity.Warning);
+            return;
+        }
+        if (_newPw != _confirmPw)
+        {
+            Snackbar.Add(L["account.pwMismatch"], Severity.Warning);
+            return;
+        }
+
+        _savingPw = true;
+        var (ok, error) = await Api.ChangePasswordAsync(_currentPw, _newPw);
+        _savingPw = false;
+
+        if (ok)
+        {
+            Snackbar.Add(L["account.pwChanged"], Severity.Success);
+            _currentPw = _newPw = _confirmPw = "";
+        }
+        else
+        {
+            Snackbar.Add(error ?? L["msg.error"], Severity.Error);
+        }
+    }
+
+    private async Task RegenerateKeyAsync()
+    {
+        _keyBusy = true;
+        _newKey = await Api.RegenerateMyApiKeyAsync();
+        _keyBusy = false;
+
+        if (_newKey is null) { Snackbar.Add(L["msg.error"], Severity.Error); return; }
+        await LoadAsync();   // aktualisiert die maskierte Vorschau
+    }
+
+    private async Task CopyKeyAsync()
+    {
+        if (_newKey is null) return;
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", _newKey);
+        Snackbar.Add(L["account.apikeyCopied"], Severity.Success);
+    }
+}

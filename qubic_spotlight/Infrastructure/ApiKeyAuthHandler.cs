@@ -29,7 +29,9 @@ public class ApiKeyAuthHandler : AuthenticationHandler<AuthenticationSchemeOptio
         if (!Request.Headers.TryGetValue(HeaderName, out var provided))
             return Task.FromResult(AuthenticateResult.NoResult());
 
-        var user = _db.GetUserByApiKey(provided.ToString());
+        // Bereitgestellten Key hashen und über den gespeicherten Hash nachschlagen.
+        var hash = PasswordHasher.HashApiKey(provided.ToString());
+        var user = _db.GetUserByApiKeyHash(hash);
         if (user is null || !user.IsActive)
             return Task.FromResult(AuthenticateResult.Fail("Invalid API key"));
 

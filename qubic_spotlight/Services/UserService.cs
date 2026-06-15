@@ -62,14 +62,53 @@ public class UserService
         return (true, null);
     }
 
-    // Erzeugt/erneuert den API-Key und gibt ihn EINMAL im Klartext zurück.
+    // Erzeugt/erneuert den API-Key. Gespeichert wird nur dessen Hash + die letzten
+    // 4 Zeichen + Erstelldatum. Der volle Key wird EINMALIG hier zurückgegeben –
+    // danach ist er nicht mehr rekonstruierbar.
     public string? RegenerateApiKey(Guid id)
     {
         var user = _db.GetUserById(id);
         if (user is null) return null;
-        user.ApiKey = PasswordHasher.NewApiKey();
+
+        var key = PasswordHasher.NewApiKey();
+        user.ApiKeyHash = PasswordHasher.HashApiKey(key);
+        user.ApiKeyLast4 = key.Length >= 4 ? key[^4..] : key;
+        user.ApiKeyCreatedAt = DateTime.UtcNow;
         _db.UpdateUser(user);
-        return user.ApiKey;
+        return key;
+    }
+
+    // Profil des angemeldeten Benutzers inkl. maskierter Key-Vorschau.
+    public MeDto? GetMe(Guid id)
+    {
+        var u = _db.GetUserById(id);
+        if (u is null) return null;
+        return new MeDto
+        {
+            Email = u.Email,
+            Roles = u.Roles,
+            Ecosystem = u.Ecosystem,
+            HasApiKey = !string.IsNullOrEmpty(u.ApiKeyHash),
+            ApiKeyPreview = string.IsNullOrEmpty(u.ApiKeyHash)
+                ? null
+                : $"qsp_••••••••{u.ApiKeyLast4}",
+            ApiKeyCreatedAt = u.ApiKeyCreatedAt
+        };
+    }
+
+    // Selbst-Service Passwortänderung: prüft das aktuelle Passwort.
+    public (bool ok, string? error) ChangePassword(Guid id, string current, string newPassword)
+    {
+        var user = _db.GetUserById(id);
+        if (user is null) return (false, "Benutzer nicht gefunden.");
+        if (!PasswordHasher.Verify(current, user.PasswordHash))
+            return (false, "Aktuelles Passwort ist falsch.");
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
+            return (false, "Neues Passwort muss mindestens 8 Zeichen haben.");
+
+        user.PasswordHash = PasswordHasher.Hash(newPassword);
+        _db.UpdateUser(user);
+        return (true, null);
     }
 
     public static UserDto ToDto(User u) => new()
@@ -79,7 +118,7 @@ public class UserService
         Roles = u.Roles,
         Ecosystem = u.Ecosystem,
         IsActive = u.IsActive,
-        HasApiKey = !string.IsNullOrEmpty(u.ApiKey),
+        HasApiKey = !string.IsNullOrEmpty(u.ApiKeyHash),
         CreatedAt = u.CreatedAt
     };
 }

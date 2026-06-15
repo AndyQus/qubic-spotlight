@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 
 namespace qubic_spotlight.Infrastructure;
 
@@ -32,4 +33,10 @@ public static class PasswordHasher
     public static string NewApiKey() =>
         "qsp_" + Convert.ToBase64String(RandomNumberGenerator.GetBytes(24))
             .Replace("+", "").Replace("/", "").Replace("=", "");
+
+    // API-Keys sind hochentropische Zufallstoken – ein schneller SHA-256 (hex)
+    // genügt zum Speichern/Vergleichen (kein langsames PBKDF2 nötig wie bei
+    // Passwörtern). Gespeichert wird nur dieser Hash, nie der Key selbst.
+    public static string HashApiKey(string apiKey) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(apiKey)));
 }
