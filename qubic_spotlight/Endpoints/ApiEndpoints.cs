@@ -72,6 +72,21 @@ public static class ApiEndpoints
         // ── Eigene Anzeigen (JWT ODER API-Key) ─────────────────────────────────
         var mine = api.MapGroup("/my").RequireAuthorization("ApiUser");
 
+        // Profil des angemeldeten Benutzers (Account-Seite).
+        mine.MapGet("/me", (HttpContext ctx, UserService users) =>
+        {
+            var me = users.GetMe(Guid.Parse(ctx.User.UserId()));
+            return me is null ? Results.NotFound() : Results.Ok(me);
+        }).WithSummary("Profil des angemeldeten Benutzers");
+
+        // Eigenes Passwort ändern (prüft das aktuelle Passwort).
+        mine.MapPost("/password", (ChangePasswordRequest req, HttpContext ctx, UserService users) =>
+        {
+            var (ok, error) = users.ChangePassword(
+                Guid.Parse(ctx.User.UserId()), req.CurrentPassword, req.NewPassword);
+            return ok ? Results.NoContent() : Results.BadRequest(new { error });
+        }).WithSummary("Eigenes Passwort ändern");
+
         mine.MapGet("/ads", (HttpContext ctx, AdService ads) =>
             Results.Ok(ads.ByOwner(ctx.User.UserId())));
 
@@ -113,6 +128,15 @@ public static class ApiEndpoints
         var manage = api.MapGroup("/admin/ads").RequireAuthorization("Manager");
 
         manage.MapGet("", (AdService ads) => Results.Ok(ads.All()));
+
+        // Klick-Statistik pro Anzeige im Zeitfenster [from, to) (UTC, ISO-8601).
+        // Fehlende Grenzen: alles bis jetzt bzw. ab Epoche.
+        manage.MapGet("/stats", (AdService ads, DateTime? from, DateTime? to) =>
+        {
+            var fromUtc = from?.ToUniversalTime() ?? DateTime.MinValue;
+            var toUtc = to?.ToUniversalTime() ?? DateTime.UtcNow;
+            return Results.Ok(ads.ClickStats(fromUtc, toUtc));
+        }).WithSummary("Klick-/Impression-Statistik pro Anzeige im Zeitraum");
 
         manage.MapPost("", (AdInput input, HttpContext ctx, AdService ads) =>
         {

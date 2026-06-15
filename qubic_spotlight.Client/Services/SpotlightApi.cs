@@ -46,6 +46,13 @@ public class SpotlightApi
     public Task<List<Ad>> GetMyAdsAsync() => GetList<Ad>("api/my/ads");
     public Task<List<Ad>> GetAllAdsAsync() => GetList<Ad>("api/admin/ads");
 
+    // Klick-/Impression-Statistik pro Anzeige im Zeitfenster (UTC, ISO-8601).
+    public Task<List<AdClickStat>> GetAdClickStatsAsync(DateTime fromUtc, DateTime toUtc)
+    {
+        var url = $"api/admin/ads/stats?from={Uri.EscapeDataString(fromUtc.ToString("o"))}&to={Uri.EscapeDataString(toUtc.ToString("o"))}";
+        return GetList<AdClickStat>(url);
+    }
+
     // Speichert über die passende Route (Manager = admin, sonst eigene).
     public Task<(bool ok, string? error)> SaveAdAsync(AdInput input, Guid? id, bool manager)
     {
@@ -65,6 +72,23 @@ public class SpotlightApi
         var doc = await res.Content.ReadFromJsonAsync<ApiKeyResult>();
         return doc?.ApiKey;
     }
+
+    // ── Eigenes Profil / Account ─────────────────────────────────────────────
+    public async Task<MeDto?> GetMeAsync()
+    {
+        var req = new HttpRequestMessage(HttpMethod.Get, "api/my/me");
+        await Authorize(req);
+        try
+        {
+            var res = await _http.SendAsync(req);
+            return res.IsSuccessStatusCode ? await res.Content.ReadFromJsonAsync<MeDto>() : null;
+        }
+        catch { return null; }
+    }
+
+    public Task<(bool ok, string? error)> ChangePasswordAsync(string current, string newPassword)
+        => Send(HttpMethod.Post, "api/my/password",
+            new ChangePasswordRequest { CurrentPassword = current, NewPassword = newPassword });
 
     // ── Benutzer (Admin) ─────────────────────────────────────────────────────
     public Task<List<UserDto>> GetUsersAsync() => GetList<UserDto>("api/admin/users");

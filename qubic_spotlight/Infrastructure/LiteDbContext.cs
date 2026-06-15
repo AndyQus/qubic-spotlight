@@ -41,7 +41,7 @@ public class LiteDbContext : IDisposable
 
         var users = _db.GetCollection<User>("users");
         users.EnsureIndex(x => x.Email, unique: true);
-        users.EnsureIndex(x => x.ApiKey);
+        users.EnsureIndex(x => x.ApiKeyHash);
 
         var events = _db.GetCollection<AdEvent>("ad_events");
         events.EnsureIndex(x => x.AdId);
@@ -161,11 +161,12 @@ public class LiteDbContext : IDisposable
                 .FindOne(x => x.Email == email.ToLowerInvariant());
     }
 
-    public User? GetUserByApiKey(string apiKey)
+    // Lookup über den gespeicherten SHA-256-Hash des Keys (nicht den Klartext).
+    public User? GetUserByApiKeyHash(string apiKeyHash)
     {
-        if (string.IsNullOrWhiteSpace(apiKey)) return null;
+        if (string.IsNullOrWhiteSpace(apiKeyHash)) return null;
         lock (_lock)
-            return _db.GetCollection<User>("users").FindOne(x => x.ApiKey == apiKey);
+            return _db.GetCollection<User>("users").FindOne(x => x.ApiKeyHash == apiKeyHash);
     }
 
     public void InsertUser(User user)
@@ -201,6 +202,27 @@ public class LiteDbContext : IDisposable
         lock (_lock)
             return _db.GetCollection<AdEvent>("ad_events")
                 .Find(x => x.AdId == adId).ToList();
+    }
+
+    // Klicks + Impressionen pro Anzeige im Zeitfenster [from, to). Grundlage für
+    // den Statistik-Tab — echte Werte aus den Event-Timestamps, kein Gesamt-Count.
+    public Dictionary<Guid, (long clicks, long impressions)> GetEventCountsByAd(DateTime from, DateTime to)
+    {
+        lock (_lock)
+        {
+            var events = _db.GetCollection<AdEvent>("ad_events")
+                .Find(x => x.Timestamp >= from && x.Timestamp < to);
+
+            var result = new Dictionary<Guid, (long clicks, long impressions)>();
+            foreach (var ev in events)
+            {
+                result.TryGetValue(ev.AdId, out var cur);
+                if (ev.Type == AdEventType.Click) cur.clicks++;
+                else cur.impressions++;
+                result[ev.AdId] = cur;
+            }
+            return result;
+        }
     }
 
     public void Dispose() => _db.Dispose();

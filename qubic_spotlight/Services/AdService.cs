@@ -14,6 +14,30 @@ public class AdService
     public AdService(LiteDbContext db) => _db = db;
 
     public List<Ad> All() => _db.GetAllAds();
+
+    // Klick-Statistik pro Anzeige für [from, to), absteigend nach Klicks.
+    // Anzeigen ohne Events im Zeitraum erscheinen mit 0 (volle Übersicht).
+    public List<AdClickStat> ClickStats(DateTime from, DateTime to)
+    {
+        var counts = _db.GetEventCountsByAd(from, to);
+        return _db.GetAllAds()
+            .Select(a =>
+            {
+                counts.TryGetValue(a.Id, out var c);
+                return new AdClickStat
+                {
+                    AdId = a.Id,
+                    Title = a.Title,
+                    Ecosystem = a.Ecosystem,
+                    ImageUrl = a.ImageUrl,
+                    Clicks = c.clicks,
+                    Impressions = c.impressions
+                };
+            })
+            .OrderByDescending(s => s.Clicks)
+            .ThenByDescending(s => s.Impressions)
+            .ToList();
+    }
     public List<Ad> ByOwner(string ownerUserId) => _db.GetAdsByOwner(ownerUserId);
     public Ad? Get(Guid id) => _db.GetAd(id);
 

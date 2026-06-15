@@ -3,7 +3,6 @@
 @inherits LocalizedComponentBase
 @inject NavigationManager Nav
 @inject IJSRuntime JS
-@inject SpotlightApi Api
 @inject ISnackbar Snackbar
 
 <PageTitle>Embed – Qubic Spotlight</PageTitle>
@@ -63,19 +62,6 @@
                          background:repeating-conic-gradient(#0000 0% 25%, rgba(127,127,127,.06) 0% 50%) 50%/20px 20px;">
             <div id="qs-preview" style="width:100%;display:flex;justify-content:center;"></div>
         </MudPaper>
-
-        <MudDivider Class="my-6" />
-
-        <MudText Typo="Typo.subtitle1">@L["embed.apikeyTitle"]</MudText>
-        <MudText Class="mb-2" Style="color:var(--mud-palette-text-secondary);">@L["embed.apikeyHint"]</MudText>
-        <MudButton OnClick="RegenerateKeyAsync" Variant="Variant.Outlined" Color="Color.Secondary"
-                   StartIcon="@Icons.Material.Filled.Key">@L["embed.apikeyBtn"]</MudButton>
-        @if (_apiKey is not null)
-        {
-            <MudAlert Severity="Severity.Info" Class="mt-3">
-                @L["embed.apikeyOnce"]<br /><code style="word-break:break-all;">@_apiKey</code>
-            </MudAlert>
-        }
     </MudItem>
 </MudGrid>
 
@@ -90,7 +76,6 @@
     private int _interval = 10000;
     private int _max = 10;
     private bool _closable = true;
-    private string? _apiKey;
 
     private string BaseUrl => Nav.BaseUri.TrimEnd('/');
 
@@ -154,11 +139,5 @@ $@"<script src=""{BaseUrl}/spotlight.js""
     {
         await JS.InvokeVoidAsync("navigator.clipboard.writeText", Snippet);
         Snackbar.Add(L["embed.copied"], Severity.Success);
-    }
-
-    private async Task RegenerateKeyAsync()
-    {
-        _apiKey = await Api.RegenerateMyApiKeyAsync();
-        if (_apiKey is null) Snackbar.Add(L["msg.error"], Severity.Error);
     }
 }

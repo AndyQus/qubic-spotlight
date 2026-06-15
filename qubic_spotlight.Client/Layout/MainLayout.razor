@@ -18,33 +18,48 @@
         </a>
         <MudSpacer />
 
-        <MudButton Href="/" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Dashboard">@L["nav.dashboard"]</MudButton>
-        <AuthorizeView>
-            <Authorized>
-                <MudButton Href="/admin" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Campaign">@L["nav.ads"]</MudButton>
-                <MudButton Href="/admin/embed" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Code">@L["nav.embed"]</MudButton>
-                <AuthorizeView Roles="Admin" Context="adminCtx">
-                    <MudButton Href="/admin/users" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.People">@L["nav.users"]</MudButton>
-                </AuthorizeView>
-                <MudButton OnClick="LogoutAsync" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Logout">@L["nav.logout"]</MudButton>
-            </Authorized>
-            <NotAuthorized>
-                <MudButton Href="/login" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Login">@L["nav.login"]</MudButton>
-            </NotAuthorized>
-        </AuthorizeView>
+        <!-- Navigation: nur ab Tablet/Desktop sichtbar -->
+        <div class="d-none d-md-flex align-center">
+            @NavLinks(false)
 
-        <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
+            <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
 
-        <!-- Sprachumschalter -->
-        <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
-            <MudButton Color="@(L.Lang == "en" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("en"))'>EN</MudButton>
-            <MudButton Color="@(L.Lang == "de" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("de"))'>DE</MudButton>
-        </MudButtonGroup>
+            <!-- Sprachumschalter -->
+            <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
+                <MudButton Color="@(L.Lang == "en" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("en"))'>EN</MudButton>
+                <MudButton Color="@(L.Lang == "de" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("de"))'>DE</MudButton>
+            </MudButtonGroup>
 
-        <!-- Dark/Light -->
-        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
-                       Color="Color.Inherit" Title='@L["header.theme"]' OnClick="ToggleDarkAsync" />
+            <!-- Dark/Light -->
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit" Title='@L["header.theme"]' OnClick="ToggleDarkAsync" />
+        </div>
+
+        <!-- Mobil: Dark/Light + Burger-Button -->
+        <div class="d-flex d-md-none align-center">
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                           Color="Color.Inherit" Title='@L["header.theme"]' OnClick="ToggleDarkAsync" />
+            <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit"
+                           Edge="Edge.End" OnClick="ToggleDrawer" />
+        </div>
     </MudAppBar>
+
+    <!-- Mobil-Navigation als ausklappbares Burger-Menü (nur < md) -->
+    <MudDrawer @bind-Open="_drawerOpen" Anchor="Anchor.Right" Elevation="2"
+               Variant="DrawerVariant.Temporary" ClipMode="DrawerClipMode.Never" Class="d-md-none">
+        <MudNavMenu Class="pa-2">
+            @NavLinks(true)
+
+            <MudDivider Class="my-2" />
+
+            <div class="d-flex align-center px-2">
+                <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
+                    <MudButton Color="@(L.Lang == "en" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("en"))'>EN</MudButton>
+                    <MudButton Color="@(L.Lang == "de" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("de"))'>DE</MudButton>
+                </MudButtonGroup>
+            </div>
+        </MudNavMenu>
+    </MudDrawer>
 
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
@@ -61,7 +76,57 @@
 
 @code {
     private bool _isDarkMode = true;
+    private bool _drawerOpen;
     private const string DarkKey = "qspot_dark";
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    private void CloseDrawer() => _drawerOpen = false;
+
+    // Gemeinsame Navigationslinks für Desktop-AppBar (Buttons) und mobiles
+    // Burger-Menü (NavLinks, schließen den Drawer beim Klick).
+    private RenderFragment NavLinks(bool mobile) =>@<text>
+        @Link("/", Icons.Material.Filled.Dashboard, L["nav.dashboard"], mobile, match: NavLinkMatch.All)
+        <AuthorizeView>
+            <Authorized>
+                @Link("/admin", Icons.Material.Filled.Campaign, L["nav.ads"], mobile)
+                @Link("/admin/embed", Icons.Material.Filled.Code, L["nav.embed"], mobile)
+                <AuthorizeView Roles="Admin" Context="adminCtx">
+                    @Link("/admin/users", Icons.Material.Filled.People, L["nav.users"], mobile)
+                </AuthorizeView>
+                @Link("/account", Icons.Material.Filled.AccountCircle, L["nav.account"], mobile)
+                @if (mobile)
+                {
+                    <MudNavLink Icon="@Icons.Material.Filled.Logout" OnClick="@(async () => { CloseDrawer(); await LogoutAsync(); })">@L["nav.logout"]</MudNavLink>
+                }
+                else
+                {
+                    <MudButton OnClick="LogoutAsync" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@Icons.Material.Filled.Logout">@L["nav.logout"]</MudButton>
+                }
+            </Authorized>
+            <NotAuthorized>
+                @if (mobile)
+                {
+                    <MudNavLink Href="/login" Icon="@Icons.Material.Filled.Login" OnClick="CloseDrawer">@L["nav.login"]</MudNavLink>
+                }
+                else
+                {
+                    <MudButton Href="/login" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Login">@L["nav.login"]</MudButton>
+                }
+            </NotAuthorized>
+        </AuthorizeView>
+    </text>;
+
+    // Einzelner Navigationspunkt – Button (Desktop) oder NavLink (Mobil).
+    private RenderFragment Link(string href, string icon, string text, bool mobile, NavLinkMatch match = NavLinkMatch.Prefix) =>@<text>
+        @if (mobile)
+        {
+            <MudNavLink Href="@href" Match="@match" Icon="@icon" OnClick="CloseDrawer">@text</MudNavLink>
+        }
+        else
+        {
+            <MudButton Href="@href" Variant="Variant.Text" Color="Color.Inherit" StartIcon="@icon">@text</MudButton>
+        }
+    </text>;
 
     private string AppBarStyle => _isDarkMode
         ? "background-color:#0d1117; color:#e0e0e0;"

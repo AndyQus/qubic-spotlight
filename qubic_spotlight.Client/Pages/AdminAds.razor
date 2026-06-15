@@ -20,53 +20,102 @@
     <MudText Class="mb-3" Style="color:var(--mud-palette-text-secondary);">@L.T("ads.ownHint", SpotlightLimits.MaxActiveAdsPerOwner)</MudText>
 }
 
-<MudTable Items="_ads" Hover="true" Striped="true" Loading="_loading" Dense="true">
-    <HeaderContent>
-        <MudTh>@L["col.title"]</MudTh>
-        <MudTh>@L["col.ecosystem"]</MudTh>
-        <MudTh>@L["col.start"]</MudTh>
-        <MudTh>@L["col.expiry"]</MudTh>
-        <MudTh>@L["col.priority"]</MudTh>
-        <MudTh>@L["col.active"]</MudTh>
-        <MudTh>@L["col.impressions"]</MudTh>
-        <MudTh>@L["col.clicks"]</MudTh>
-        <MudTh></MudTh>
-    </HeaderContent>
-    <RowTemplate>
-        <MudTd>@context.Title</MudTd>
-        <MudTd>@context.Ecosystem</MudTd>
-        <MudTd>@context.StartDate.ToString("yyyy-MM-dd")</MudTd>
-        <MudTd>@(context.ExpiryDate?.ToString("yyyy-MM-dd") ?? "–")</MudTd>
-        <MudTd>
-            @if (context.Priority)
+<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mt-2">
+    <MudTabPanel Text="@L["ads.tabActive"]" Icon="@Icons.Material.Filled.CheckCircle">
+        @AdTable(_active, L["dash.noAds"])
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["ads.tabExpired"]" Icon="@Icons.Material.Filled.HistoryToggleOff">
+        @AdTable(_expired, L["ads.noExpired"])
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["ads.tabStats"]" Icon="@Icons.Material.Filled.BarChart">
+        <div class="d-flex flex-wrap gap-3 align-center mb-4">
+            <MudSelect T="StatRange" @bind-Value="_range" Label="@L["stats.range"]" Dense="true"
+                       Variant="Variant.Outlined" Style="max-width:160px;">
+                <MudSelectItem Value="StatRange.Day">@L["stats.day"]</MudSelectItem>
+                <MudSelectItem Value="StatRange.Month">@L["stats.month"]</MudSelectItem>
+                <MudSelectItem Value="StatRange.Year">@L["stats.year"]</MudSelectItem>
+            </MudSelect>
+
+            @if (_range == StatRange.Day)
             {
-                <MudTooltip Text="@PriorityTooltip(context)">
-                    <MudIcon Icon="@Icons.Material.Filled.PushPin"
-                             Color="@(IsPinnedNow(context) ? Color.Secondary : Color.Default)" Size="Size.Small" />
-                </MudTooltip>
+                <MudDatePicker @bind-Date="_day" Label="@L["stats.pickDay"]" Variant="Variant.Outlined"
+                               DateFormat="yyyy-MM-dd" Style="max-width:200px;" />
+            }
+            else if (_range == StatRange.Month)
+            {
+                <MudDatePicker @bind-Date="_month" Label="@L["stats.pickMonth"]" Variant="Variant.Outlined"
+                               OpenTo="OpenTo.Month" FixDay="1" DateFormat="yyyy-MM" Style="max-width:200px;" />
             }
             else
             {
-                <span>–</span>
+                <MudNumericField @bind-Value="_year" Label="@L["stats.pickYear"]" Variant="Variant.Outlined"
+                                 Min="2020" Max="2100" Style="max-width:140px;" />
             }
-        </MudTd>
-        <MudTd>
-            <MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
-                     Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small" />
-        </MudTd>
-        <MudTd>@context.ImpressionCount</MudTd>
-        <MudTd>@context.ClickCount</MudTd>
-        <MudTd>
-            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(context))" />
-            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(context))" />
-        </MudTd>
-    </RowTemplate>
-</MudTable>
+        </div>
+
+        <MudTable Items="_stats" Hover="true" Striped="true" Loading="_statsLoading" Dense="true">
+            <HeaderContent>
+                <MudTh>@L["col.image"]</MudTh>
+                <MudTh>@L["col.title"]</MudTh>
+                <MudTh>@L["col.ecosystem"]</MudTh>
+                <MudTh Style="text-align:right;">@L["col.impressions"]</MudTh>
+                <MudTh Style="text-align:right;">@L["col.clicks"]</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["col.image"]" Style="height:72px;">@Thumb(context.ImageUrl)</MudTd>
+                <MudTd DataLabel="@L["col.title"]">@context.Title</MudTd>
+                <MudTd DataLabel="@L["col.ecosystem"]">@(context.Ecosystem ?? "–")</MudTd>
+                <MudTd DataLabel="@L["col.impressions"]" Style="text-align:right;">@context.Impressions</MudTd>
+                <MudTd DataLabel="@L["col.clicks"]" Style="text-align:right;font-weight:600;">@context.Clicks</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@L["ads.noStats"]</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
 
 @code {
     private List<Ad> _ads = new();
+    private List<Ad> _active = new();
+    private List<Ad> _expired = new();
     private bool _manager;
     private bool _loading = true;
+
+    private List<AdClickStat> _stats = new();
+    private bool _statsLoading;
+
+    private enum StatRange { Day, Month, Year }
+
+    private StatRange _rangeBacking = StatRange.Month;
+    private StatRange _range
+    {
+        get => _rangeBacking;
+        set { if (_rangeBacking != value) { _rangeBacking = value; _ = LoadStatsAsync(); } }
+    }
+
+    private DateTime? _dayBacking = DateTime.UtcNow.Date;
+    private DateTime? _day
+    {
+        get => _dayBacking;
+        set { _dayBacking = value; _ = LoadStatsAsync(); }
+    }
+
+    private DateTime? _monthBacking = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+    private DateTime? _month
+    {
+        get => _monthBacking;
+        set { _monthBacking = value; _ = LoadStatsAsync(); }
+    }
+
+    private int _yearBacking = DateTime.UtcNow.Year;
+    private int _year
+    {
+        get => _yearBacking;
+        set { if (_yearBacking != value) { _yearBacking = value; _ = LoadStatsAsync(); } }
+    }
 
     // Ist die Anzeige gerade aktiv gepinnt (Flag + im Zeitfenster + nicht abgelaufen)?
     private static bool IsPinnedNow(Ad a)
@@ -78,6 +127,10 @@
         return a.PinnedUntil is { } until && now < until;
     }
 
+    // Abgelaufen = Ablaufdatum gesetzt und in der Vergangenheit.
+    private static bool IsExpired(Ad a) =>
+        a.ExpiryDate is { } e && e.Date < DateTime.UtcNow.Date;
+
     private string PriorityTooltip(Ad a)
         => IsPinnedNow(a) ? L["ads.pinnedNow"] : L["ads.pinnedScheduled"];
 
@@ -86,13 +139,45 @@
         var state = await AuthProvider.GetAuthenticationStateAsync();
         _manager = state.User.IsInRole(Roles.Admin) || state.User.IsInRole(Roles.Marketing);
         await LoadAsync();
+        if (_manager) await LoadStatsAsync();
     }
 
     private async Task LoadAsync()
     {
         _loading = true;
         _ads = _manager ? await Api.GetAllAdsAsync() : await Api.GetMyAdsAsync();
+        _expired = _ads.Where(IsExpired).ToList();
+        _active = _ads.Where(a => !IsExpired(a)).ToList();
         _loading = false;
+    }
+
+    // Zeitfenster [from, to) aus der aktuellen Filterauswahl ableiten.
+    private (DateTime from, DateTime to) CurrentRange()
+    {
+        switch (_range)
+        {
+            case StatRange.Day:
+                var d = (_day ?? DateTime.UtcNow.Date).Date;
+                return (d, d.AddDays(1));
+            case StatRange.Year:
+                var y = new DateTime(_year, 1, 1);
+                return (y, y.AddYears(1));
+            default:
+                var m = _month ?? DateTime.UtcNow.Date;
+                var first = new DateTime(m.Year, m.Month, 1);
+                return (first, first.AddMonths(1));
+        }
+    }
+
+    private async Task LoadStatsAsync()
+    {
+        if (!_manager) return;
+        _statsLoading = true;
+        StateHasChanged();
+        var (from, to) = CurrentRange();
+        _stats = await Api.GetAdClickStatsAsync(from, to);
+        _statsLoading = false;
+        StateHasChanged();
     }
 
     private async Task EditAsync(Ad? ad)
@@ -113,4 +198,75 @@
         if (success) { Snackbar.Add(L["msg.deleted"], Severity.Success); await LoadAsync(); }
         else Snackbar.Add(error ?? L["msg.error"], Severity.Error);
     }
+
+    // Kleines Vorschaubild für die erste Spalte (oder Platzhalter-Icon).
+    private RenderFragment Thumb(string? url) => builder =>
+    {
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            builder.OpenElement(0, "img");
+            builder.AddAttribute(1, "src", url);
+            builder.AddAttribute(2, "style", "height:56px;width:56px;object-fit:cover;border-radius:6px;display:block;");
+            builder.CloseElement();
+        }
+        else
+        {
+            builder.OpenComponent<MudIcon>(0);
+            builder.AddAttribute(1, "Icon", Icons.Material.Filled.Image);
+            builder.AddAttribute(2, "Color", Color.Default);
+            builder.AddAttribute(3, "Size", Size.Large);
+            builder.CloseComponent();
+        }
+    };
+
+    // Tabelle für aktive/abgelaufene Anzeigen — erste Spalte zeigt das Bild,
+    // die Zeile ist doppelt so hoch (72px) für die Vorschau.
+    private RenderFragment AdTable(List<Ad> items, string emptyText) =>
+        @<MudTable Items="items" Hover="true" Striped="true" Loading="_loading" Dense="true">
+            <HeaderContent>
+                <MudTh>@L["col.image"]</MudTh>
+                <MudTh>@L["col.title"]</MudTh>
+                <MudTh>@L["col.ecosystem"]</MudTh>
+                <MudTh>@L["col.start"]</MudTh>
+                <MudTh>@L["col.expiry"]</MudTh>
+                <MudTh>@L["col.priority"]</MudTh>
+                <MudTh>@L["col.active"]</MudTh>
+                <MudTh>@L["col.impressions"]</MudTh>
+                <MudTh>@L["col.clicks"]</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="@L["col.image"]" Style="height:72px;">@Thumb(context.ImageUrl)</MudTd>
+                <MudTd DataLabel="@L["col.title"]">@context.Title</MudTd>
+                <MudTd DataLabel="@L["col.ecosystem"]">@context.Ecosystem</MudTd>
+                <MudTd DataLabel="@L["col.start"]">@context.StartDate.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd DataLabel="@L["col.expiry"]">@(context.ExpiryDate?.ToString("yyyy-MM-dd") ?? "–")</MudTd>
+                <MudTd DataLabel="@L["col.priority"]">
+                    @if (context.Priority)
+                    {
+                        <MudTooltip Text="@PriorityTooltip(context)">
+                            <MudIcon Icon="@Icons.Material.Filled.PushPin"
+                                     Color="@(IsPinnedNow(context) ? Color.Secondary : Color.Default)" Size="Size.Small" />
+                        </MudTooltip>
+                    }
+                    else
+                    {
+                        <span>–</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="@L["col.active"]">
+                    <MudIcon Icon="@(context.IsActive ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.RadioButtonUnchecked)"
+                             Color="@(context.IsActive ? Color.Success : Color.Default)" Size="Size.Small" />
+                </MudTd>
+                <MudTd DataLabel="@L["col.impressions"]">@context.ImpressionCount</MudTd>
+                <MudTd DataLabel="@L["col.clicks"]">@context.ClickCount</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(context))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(context))" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText>@emptyText</MudText>
+            </NoRecordsContent>
+        </MudTable>;
 }

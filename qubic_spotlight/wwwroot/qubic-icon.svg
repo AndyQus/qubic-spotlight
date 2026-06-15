@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <!-- App-Icon: Qubic-Logomark (das ikonische Doppelbalken-Symbol der Qubic-
+       Wortmarke) in Qubic-Orange #f59e0b auf dunklem, abgerundetem Quadrat.
+       Genutzt als Favicon, Footer-Icon und PWA-/iOS-Home-Screen-Icon. -->
+  <rect x="2" y="2" width="92" height="92" rx="22" fill="#0d1117"/>
+  <!-- Logomark hat im Quell-viewBox die Maße 14.0035 x 24; auf ~58px Höhe
+       skaliert (Faktor 2.42) und zentriert. -->
+  <g transform="translate(31,19) scale(2.42)" fill="#f59e0b">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M0 0H6.01795V18.0012H0V0ZM8.02734 0H14.0035V24H8.02734V0Z"/>
+  </g>
+</svg>

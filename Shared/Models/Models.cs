@@ -66,7 +66,15 @@ public class User
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Email { get; set; } = "";
     public string PasswordHash { get; set; } = "";
-    public string? ApiKey { get; set; }
+
+    // API-Key wird NICHT im Klartext gespeichert. Wir halten nur den SHA-256-Hash
+    // (für die Authentifizierung) sowie die letzten 4 Zeichen + Erstelldatum für
+    // eine maskierte Vorschau in der Oberfläche. Der volle Key wird ausschließlich
+    // einmalig bei der Erzeugung zurückgegeben.
+    public string? ApiKeyHash { get; set; }
+    public string? ApiKeyLast4 { get; set; }
+    public DateTime? ApiKeyCreatedAt { get; set; }
+
     public List<string> Roles { get; set; } = new();
     public string? Ecosystem { get; set; }
     public bool IsActive { get; set; } = true;
@@ -121,6 +129,17 @@ public class PublicAd
     public DateTime? PinnedUntil { get; set; }
 }
 
+// Klick-Statistik einer Anzeige für einen Zeitraum (Statistik-Tab im Admin).
+public class AdClickStat
+{
+    public Guid AdId { get; set; }
+    public string Title { get; set; } = "";
+    public string? Ecosystem { get; set; }
+    public string? ImageUrl { get; set; }
+    public long Clicks { get; set; }
+    public long Impressions { get; set; }
+}
+
 public class LoginRequest
 {
     public string Email { get; set; } = "";
@@ -154,6 +173,25 @@ public class UserDto
     public bool IsActive { get; set; }
     public bool HasApiKey { get; set; }
     public DateTime CreatedAt { get; set; }
+}
+
+// Profil des aktuell angemeldeten Benutzers (für die Account-Seite).
+// Enthält bewusst KEINEN vollständigen API-Key – nur eine maskierte Vorschau.
+public class MeDto
+{
+    public string Email { get; set; } = "";
+    public List<string> Roles { get; set; } = new();
+    public string? Ecosystem { get; set; }
+    public bool HasApiKey { get; set; }
+    public string? ApiKeyPreview { get; set; }      // z. B. "qsp_••••••••a1b2"
+    public DateTime? ApiKeyCreatedAt { get; set; }
+}
+
+// Selbst-Service Passwortänderung des angemeldeten Benutzers.
+public class ChangePasswordRequest
+{
+    public string CurrentPassword { get; set; } = "";
+    public string NewPassword { get; set; } = "";
 }
 
 // Live-Werte des Qubic-Netzwerks (aus rpc.qubic.org/v1/latest-stats).
