@@ -30,6 +30,33 @@ public class SpotlightApi
         catch { return new(); }
     }
 
+    // ── Pulse-/Feed-Seite ────────────────────────────────────────────────────
+    public async Task<List<PublicAd>> GetFeedAsync(string sort, string? ecosystem, string? voterId)
+    {
+        var qs = $"api/feed?sort={Uri.EscapeDataString(sort)}";
+        if (!string.IsNullOrWhiteSpace(ecosystem)) qs += $"&ecosystem={Uri.EscapeDataString(ecosystem)}";
+        if (!string.IsNullOrWhiteSpace(voterId)) qs += $"&voterId={Uri.EscapeDataString(voterId)}";
+        try { return await _http.GetFromJsonAsync<List<PublicAd>>(qs) ?? new(); }
+        catch { return new(); }
+    }
+
+    public async Task<List<string>> GetFeedEcosystemsAsync()
+    {
+        try { return await _http.GetFromJsonAsync<List<string>>("api/feed/ecosystems") ?? new(); }
+        catch { return new(); }
+    }
+
+    public async Task<VoteResult?> VoteAsync(Guid adId, int value, string? voterId)
+    {
+        try
+        {
+            var res = await _http.PostAsJsonAsync($"api/ads/{adId}/vote",
+                new VoteRequest { Value = value, VoterId = voterId });
+            return res.IsSuccessStatusCode ? await res.Content.ReadFromJsonAsync<VoteResult>() : null;
+        }
+        catch { return null; }
+    }
+
     // ── Login ──────────────────────────────────────────────────────────────
     public async Task<LoginResponse?> LoginAsync(string email, string password)
     {

@@ -62,6 +62,8 @@
                 <MudTh>@L["col.ecosystem"]</MudTh>
                 <MudTh Style="text-align:right;">@L["col.impressions"]</MudTh>
                 <MudTh Style="text-align:right;">@L["col.clicks"]</MudTh>
+                <MudTh Style="text-align:right;">@L["col.likes"]</MudTh>
+                <MudTh Style="text-align:right;">@L["col.dislikes"]</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="@L["col.image"]" Style="height:72px;">@Thumb(context.ImageUrl)</MudTd>
@@ -69,6 +71,8 @@
                 <MudTd DataLabel="@L["col.ecosystem"]">@(context.Ecosystem ?? "–")</MudTd>
                 <MudTd DataLabel="@L["col.impressions"]" Style="text-align:right;">@context.Impressions</MudTd>
                 <MudTd DataLabel="@L["col.clicks"]" Style="text-align:right;font-weight:600;">@context.Clicks</MudTd>
+                <MudTd DataLabel="@L["col.likes"]" Style="text-align:right;color:#22c55e;">@context.Likes</MudTd>
+                <MudTd DataLabel="@L["col.dislikes"]" Style="text-align:right;color:#ef4444;">@context.Dislikes</MudTd>
             </RowTemplate>
             <NoRecordsContent>
                 <MudText>@L["ads.noStats"]</MudText>
@@ -233,6 +237,8 @@
                 <MudTh>@L["col.active"]</MudTh>
                 <MudTh>@L["col.impressions"]</MudTh>
                 <MudTh>@L["col.clicks"]</MudTh>
+                <MudTh Style="text-align:right;">@L["col.likes"]</MudTh>
+                <MudTh Style="text-align:right;">@L["col.dislikes"]</MudTh>
                 <MudTh></MudTh>
             </HeaderContent>
             <RowTemplate>
@@ -260,6 +266,8 @@
                 </MudTd>
                 <MudTd DataLabel="@L["col.impressions"]">@context.ImpressionCount</MudTd>
                 <MudTd DataLabel="@L["col.clicks"]">@context.ClickCount</MudTd>
+                <MudTd DataLabel="@L["col.likes"]" Style="text-align:right;color:#22c55e;">@context.LikeCount</MudTd>
+                <MudTd DataLabel="@L["col.dislikes"]" Style="text-align:right;color:#ef4444;">@context.DislikeCount</MudTd>
                 <MudTd>
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="@(() => EditAsync(context))" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => DeleteAsync(context))" />

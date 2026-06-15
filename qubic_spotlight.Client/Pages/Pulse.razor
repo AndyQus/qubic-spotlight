@@ -1,0 +1,287 @@
+@page "/pulse"
+@inherits LocalizedComponentBase
+@inject SpotlightApi Api
+@inject IJSRuntime JS
+
+<PageTitle>Qubic Spotlight — @L["pulse.title"]</PageTitle>
+
+@* Qubic-Netzwerk-Statistikleiste (wie auf dem Dashboard) *@
+@if (_stats is not null)
+{
+    <div class="qs-stats">
+        @foreach (var (label, value) in StatTiles())
+        {
+            <div class="qs-stat">
+                <div class="label">@label</div>
+                <div class="value">@value</div>
+            </div>
+        }
+    </div>
+}
+
+<div class="pulse-head">
+    <div class="pulse-head-title">
+        <h1 class="pulse-h1">@L["pulse.title"]</h1>
+        <div class="pulse-sub">@L["pulse.subtitle"]</div>
+    </div>
+
+    @if (_ecosystems.Count > 0)
+    {
+        <div class="pulse-filter">
+            <button class="pulse-chip @(_eco is null ? "on" : "")" @onclick="() => SetEcoAsync(null)">@L["pulse.filter.all"]</button>
+            @foreach (var eco in _ecosystems)
+            {
+                <button class="pulse-chip @(string.Equals(_eco, eco, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
+                        @onclick="() => SetEcoAsync(eco)">@eco</button>
+            }
+        </div>
+    }
+
+    <div class="pulse-sort">
+        <button class="pulse-seg @(_sort == "new" ? "on" : "")" @onclick='() => SetSortAsync("new")'>@L["pulse.sort.new"]</button>
+        <button class="pulse-seg @(_sort == "top" ? "on" : "")" @onclick='() => SetSortAsync("top")'>@L["pulse.sort.top"]</button>
+    </div>
+</div>
+
+<MudTabs Elevation="0" Rounded="true" Border="false" ApplyEffectsToContainer="true"
+         ActivePanelIndex="_tab" ActivePanelIndexChanged="OnTabChangedAsync"
+         PanelClass="pt-4" Class="pulse-tabs">
+    <MudTabPanel Text="@L["pulse.tab.stream"]" Icon="@Icons.Material.Filled.ViewStream">
+        @if (_ads.Count > 0)
+        {
+            <div class="pulse-stream">
+                @foreach (var ad in _ads) { @StreamPost(ad) }
+            </div>
+        }
+        else if (_loaded) { @Empty }
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["pulse.tab.bento"]" Icon="@Icons.Material.Filled.GridView">
+        @if (_ads.Count > 0)
+        {
+            <div class="pulse-bento">
+                @for (var i = 0; i < _ads.Count; i++)
+                {
+                    var ad = _ads[i];
+                    <div class="pulse-tile @BentoClass(i)">@TileInner(ad)</div>
+                }
+            </div>
+        }
+        else if (_loaded) { @Empty }
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["pulse.tab.magazine"]" Icon="@Icons.Material.Filled.Article">
+        @if (_ads.Count > 0)
+        {
+            var hero = _ads[0];
+            <div class="pulse-mag">
+                <div class="pulse-mag-hero">@HeroInner(hero)</div>
+                @if (_ads.Count > 1)
+                {
+                    <div class="pulse-mag-rest">
+                        @foreach (var ad in _ads.Skip(1))
+                        {
+                            <div class="pulse-tile">@TileInner(ad)</div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else if (_loaded) { @Empty }
+    </MudTabPanel>
+
+    <MudTabPanel Text="@L["pulse.tab.wall"]" Icon="@Icons.Material.Filled.Dashboard">
+        @if (_ads.Count > 0)
+        {
+            <div class="pulse-wall">
+                @foreach (var ad in _ads)
+                {
+                    <div class="pulse-wall-item">@TileInner(ad)</div>
+                }
+            </div>
+        }
+        else if (_loaded) { @Empty }
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private const string TabKey = "qspot_pulse_tab";
+    private const string SortKey = "qspot_pulse_sort";
+    private const string EcoKey = "qspot_pulse_eco";
+    private const string VoterKey = "qspot_voter";
+
+    private QubicStats? _stats;
+    private List<PublicAd> _ads = new();
+    private List<string> _ecosystems = new();
+    private int _tab;
+    private string _sort = "new";
+    private string? _eco;
+    private string? _voterId;
+    private bool _loaded;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Gemerkte Einstellungen aus dem localStorage laden.
+        var tab = await GetItem(TabKey);
+        if (int.TryParse(tab, out var t) && t is >= 0 and <= 3) _tab = t;
+        var sort = await GetItem(SortKey);
+        if (sort is "new" or "top") _sort = sort;
+        _eco = await GetItem(EcoKey);
+        if (string.IsNullOrWhiteSpace(_eco)) _eco = null;
+
+        // Anonyme Besucher-Kennung für die Vote-Begrenzung (einmalig erzeugen).
+        _voterId = await GetItem(VoterKey);
+        if (string.IsNullOrWhiteSpace(_voterId))
+        {
+            _voterId = await JS.InvokeAsync<string>("crypto.randomUUID");
+            await SetItem(VoterKey, _voterId);
+        }
+
+        _stats = await Api.GetStatsAsync();
+        _ecosystems = await Api.GetFeedEcosystemsAsync();
+        await LoadFeedAsync();
+        _loaded = true;
+        StateHasChanged();
+    }
+
+    private async Task LoadFeedAsync()
+        => _ads = await Api.GetFeedAsync(_sort, _eco, _voterId);
+
+    private async Task SetSortAsync(string sort)
+    {
+        if (_sort == sort) return;
+        _sort = sort;
+        await SetItem(SortKey, sort);
+        await LoadFeedAsync();
+        StateHasChanged();
+    }
+
+    private async Task SetEcoAsync(string? eco)
+    {
+        _eco = eco;
+        await SetItem(EcoKey, eco ?? "");
+        await LoadFeedAsync();
+        StateHasChanged();
+    }
+
+    private async Task OnTabChangedAsync(int index)
+    {
+        _tab = index;
+        await SetItem(TabKey, index.ToString());
+    }
+
+    private async Task VoteAsync(PublicAd ad, int value)
+    {
+        // Erneuter Klick auf die aktive Stimme nimmt sie zurück (Toggle).
+        var desired = ad.MyVote == value ? 0 : value;
+        var res = await Api.VoteAsync(ad.Id, desired, _voterId);
+        if (res is null) return;
+        ad.LikeCount = res.LikeCount;
+        ad.DislikeCount = res.DislikeCount;
+        ad.MyVote = res.MyVote;
+        StateHasChanged();
+    }
+
+    private Task<string?> GetItem(string key) => JS.InvokeAsync<string?>("localStorage.getItem", key).AsTask();
+    private Task SetItem(string key, string value) => JS.InvokeVoidAsync("localStorage.setItem", key, value).AsTask();
+
+    private static string ClickUrl(PublicAd ad) => $"/api/ads/{ad.Id}/click";
+
+    private static string BentoClass(int i)
+        => i == 0 ? "tile-lg" : (i % 6 == 0 ? "tile-wide" : (i % 8 == 5 ? "tile-tall" : ""));
+
+    private string Ago(DateTime utc)
+    {
+        if (utc == default) return "";
+        var mins = (DateTime.UtcNow - utc).TotalMinutes;
+        if (mins < 1) return L["pulse.justNow"];
+        if (mins < 60) return L.T("pulse.minutesAgo", (int)mins);
+        var hrs = mins / 60;
+        if (hrs < 24) return L.T("pulse.hoursAgo", (int)hrs);
+        return L.T("pulse.daysAgo", (int)(hrs / 24));
+    }
+
+    private IEnumerable<(string, string)> StatTiles()
+    {
+        var s = _stats!;
+        yield return (L["stat.price"], Format.Price(s.Price));
+        yield return (L["stat.marketcap"], Format.Money(s.MarketCap));
+        yield return (L["stat.supply"], Format.Compact(s.CirculatingSupply));
+        yield return (L["stat.addresses"], Format.Compact(s.ActiveAddresses));
+        yield return (L["stat.epoch"], s.Epoch.ToString());
+        yield return (L["stat.tick"], Format.Compact(s.CurrentTick));
+        yield return (L["stat.quality"], s.EpochTickQuality.ToString("0.0") + "%");
+        yield return (L["stat.burned"], Format.Compact(s.BurnedQus));
+    }
+
+    // ── Wiederverwendbare Bausteine ───────────────────────────────────────────
+    private RenderFragment Empty =>@<MudText Class="pa-8" Style="color:var(--mud-palette-text-secondary);">@L["pulse.noAds"]</MudText>;
+
+    private RenderFragment Meta(PublicAd ad) =>@<text>
+        <div class="pulse-meta">
+            @if (!string.IsNullOrEmpty(ad.Ecosystem)) { <span class="qs-ad-eco">@ad.Ecosystem</span> }
+            <span class="pulse-time">@Ago(ad.CreatedAt)</span>
+        </div>
+    </text>;
+
+    private RenderFragment Votes(PublicAd ad) =>@<text>
+        <div class="pulse-votes">
+            <button class="pulse-vote up @(ad.MyVote == 1 ? "on" : "")" title="@L["pulse.like"]"
+                    @onclick="() => VoteAsync(ad, 1)">👍 <span class="cnt">@ad.LikeCount</span></button>
+            <button class="pulse-vote down @(ad.MyVote == -1 ? "on" : "")" title="@L["pulse.dislike"]"
+                    @onclick="() => VoteAsync(ad, -1)">👎 <span class="cnt">@ad.DislikeCount</span></button>
+            <a class="pulse-open" href="@ClickUrl(ad)" target="_blank" rel="noopener">@L["pulse.open"] ↗</a>
+        </div>
+    </text>;
+
+    // Breite Karte für den Stream.
+    private RenderFragment StreamPost(PublicAd ad) =>@<div class="pulse-post">
+        @if (!string.IsNullOrEmpty(ad.ImageUrl))
+        {
+            <a class="pulse-post-media" href="@ClickUrl(ad)" target="_blank" rel="noopener">
+                <img src="@ad.ImageUrl" alt="" />
+            </a>
+        }
+        <div class="pulse-post-body">
+            @Meta(ad)
+            <a class="pulse-post-title" href="@ClickUrl(ad)" target="_blank" rel="noopener">@ad.Title</a>
+            <p class="pulse-post-text">@ad.Description</p>
+            @Votes(ad)
+        </div>
+    </div>;
+
+    // Kompakte Kachel für Bento / Wand / Magazin-Rest.
+    private RenderFragment TileInner(PublicAd ad) =>@<text>
+        @if (!string.IsNullOrEmpty(ad.ImageUrl))
+        {
+            <a class="pulse-tile-media" href="@ClickUrl(ad)" target="_blank" rel="noopener">
+                <img src="@ad.ImageUrl" alt="" />
+            </a>
+        }
+        <div class="pulse-tile-body">
+            @Meta(ad)
+            <a class="pulse-tile-title" href="@ClickUrl(ad)" target="_blank" rel="noopener">@ad.Title</a>
+            <p class="pulse-tile-text">@ad.Description</p>
+            @Votes(ad)
+        </div>
+    </text>;
+
+    // Großer Aufmacher fürs Magazin.
+    private RenderFragment HeroInner(PublicAd ad) =>@<text>
+        @if (!string.IsNullOrEmpty(ad.ImageUrl))
+        {
+            <a class="pulse-hero-media" href="@ClickUrl(ad)" target="_blank" rel="noopener">
+                <img src="@ad.ImageUrl" alt="" />
+            </a>
+        }
+        <div class="pulse-hero-body">
+            <span class="pulse-badge">@L["pulse.featured"]</span>
+            @Meta(ad)
+            <a class="pulse-hero-title" href="@ClickUrl(ad)" target="_blank" rel="noopener">@ad.Title</a>
+            <p class="pulse-hero-text">@ad.Description</p>
+            @Votes(ad)
+        </div>
+    </text>;
+}

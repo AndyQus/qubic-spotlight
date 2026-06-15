@@ -46,6 +46,7 @@ public class LiteDbContext : IDisposable
         var events = _db.GetCollection<AdEvent>("ad_events");
         events.EnsureIndex(x => x.AdId);
         events.EnsureIndex(x => x.Timestamp);
+        events.EnsureIndex(x => x.IpHash);
     }
 
     // ── Ads ──────────────────────────────────────────────────────────────────
@@ -140,6 +141,65 @@ public class LiteDbContext : IDisposable
         }
     }
 
+    // ── Bewertungen (👍/👎) ───────────────────────────────────────────────────
+    // Setzt die Stimme eines anonymen Besuchers (identifiziert über voterKey,
+    // der bereits aus VoterId/IP gehasht wurde). Pro Besucher genau eine Stimme
+    // je Anzeige: alte Vote-Events werden entfernt, das neue (falls value != 0)
+    // eingefügt, danach die Zähler auf der Anzeige aus den Events neu berechnet.
+    // value: 1 = Like, -1 = Dislike, 0 = Stimme zurücknehmen.
+    // Rückgabe: aktuelle Zähler + die nun gültige eigene Stimme.
+    public (long likes, long dislikes, int myVote) SetVote(Guid adId, string voterKey, int value)
+    {
+        lock (_lock)
+        {
+            var ads = _db.GetCollection<Ad>("ads");
+            var ad = ads.FindById(adId);
+            if (ad is null) return (0, 0, 0);
+
+            var events = _db.GetCollection<AdEvent>("ad_events");
+
+            // Bestehende Stimme dieses Besuchers für diese Anzeige entfernen.
+            events.DeleteMany(x => x.AdId == adId && x.IpHash == voterKey
+                && (x.Type == AdEventType.Like || x.Type == AdEventType.Dislike));
+
+            var myVote = 0;
+            if (value == 1)
+            {
+                events.Insert(new AdEvent { AdId = adId, Type = AdEventType.Like, IpHash = voterKey });
+                myVote = 1;
+            }
+            else if (value == -1)
+            {
+                events.Insert(new AdEvent { AdId = adId, Type = AdEventType.Dislike, IpHash = voterKey });
+                myVote = -1;
+            }
+
+            // Zähler aus den Events neu berechnen (klein & konsistent).
+            ad.LikeCount = events.Count(x => x.AdId == adId && x.Type == AdEventType.Like);
+            ad.DislikeCount = events.Count(x => x.AdId == adId && x.Type == AdEventType.Dislike);
+            ads.Update(ad);
+
+            return (ad.LikeCount, ad.DislikeCount, myVote);
+        }
+    }
+
+    // Aktuelle Stimmen eines Besuchers über alle Anzeigen: AdId -> 1 (👍) / -1 (👎).
+    // Dient dem Feed, um die eigenen Buttons hervorzuheben.
+    public Dictionary<Guid, int> GetVotesByVoter(string voterKey)
+    {
+        var result = new Dictionary<Guid, int>();
+        if (string.IsNullOrEmpty(voterKey)) return result;
+        lock (_lock)
+        {
+            var events = _db.GetCollection<AdEvent>("ad_events")
+                .Find(x => x.IpHash == voterKey
+                    && (x.Type == AdEventType.Like || x.Type == AdEventType.Dislike));
+            foreach (var ev in events)
+                result[ev.AdId] = ev.Type == AdEventType.Like ? 1 : -1;
+        }
+        return result;
+    }
+
     // ── Users ────────────────────────────────────────────────────────────────
 
     public List<User> GetAllUsers()
@@ -204,21 +264,26 @@ public class LiteDbContext : IDisposable
                 .Find(x => x.AdId == adId).ToList();
     }
 
-    // Klicks + Impressionen pro Anzeige im Zeitfenster [from, to). Grundlage für
-    // den Statistik-Tab — echte Werte aus den Event-Timestamps, kein Gesamt-Count.
-    public Dictionary<Guid, (long clicks, long impressions)> GetEventCountsByAd(DateTime from, DateTime to)
+    // Klicks + Impressionen + 👍/👎 pro Anzeige im Zeitfenster [from, to). Grundlage
+    // für den Statistik-Tab — echte Werte aus den Event-Timestamps, kein Gesamt-Count.
+    public Dictionary<Guid, (long clicks, long impressions, long likes, long dislikes)> GetEventCountsByAd(DateTime from, DateTime to)
     {
         lock (_lock)
         {
             var events = _db.GetCollection<AdEvent>("ad_events")
                 .Find(x => x.Timestamp >= from && x.Timestamp < to);
 
-            var result = new Dictionary<Guid, (long clicks, long impressions)>();
+            var result = new Dictionary<Guid, (long clicks, long impressions, long likes, long dislikes)>();
             foreach (var ev in events)
             {
                 result.TryGetValue(ev.AdId, out var cur);
-                if (ev.Type == AdEventType.Click) cur.clicks++;
-                else cur.impressions++;
+                switch (ev.Type)
+                {
+                    case AdEventType.Click: cur.clicks++; break;
+                    case AdEventType.Like: cur.likes++; break;
+                    case AdEventType.Dislike: cur.dislikes++; break;
+                    default: cur.impressions++; break;
+                }
                 result[ev.AdId] = cur;
             }
             return result;

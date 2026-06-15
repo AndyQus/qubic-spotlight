@@ -86,6 +86,7 @@
     // Burger-Menü (NavLinks, schließen den Drawer beim Klick).
     private RenderFragment NavLinks(bool mobile) =>@<text>
         @Link("/", Icons.Material.Filled.Dashboard, L["nav.dashboard"], mobile, match: NavLinkMatch.All)
+        @Link("/pulse", Icons.Material.Filled.Bolt, L["nav.pulse"], mobile)
         <AuthorizeView>
             <Authorized>
                 @Link("/admin", Icons.Material.Filled.Campaign, L["nav.ads"], mobile)

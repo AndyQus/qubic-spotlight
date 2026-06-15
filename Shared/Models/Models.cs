@@ -25,7 +25,9 @@ public enum AdStatus
 public enum AdEventType
 {
     Impression = 0,
-    Click = 1
+    Click = 1,
+    Like = 2,       // 👍 auf der Pulse-/Feed-Seite
+    Dislike = 3     // 👎 auf der Pulse-/Feed-Seite
 }
 
 // ── Datenmodelle (LiteDB-Collections) ────────────────────────────────────────
@@ -57,6 +59,12 @@ public class Ad
 
     public long ImpressionCount { get; set; }
     public long ClickCount { get; set; }
+
+    // ── Bewertungen (Pulse-/Feed-Seite, 👍/👎) ───────────────────────────────
+    // Denormalisierte Zähler, bei jedem Vote aus ad_events neu berechnet.
+    public long LikeCount { get; set; }
+    public long DislikeCount { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
@@ -127,6 +135,33 @@ public class PublicAd
     // und lädt nach PinnedUntil neu, um wieder zu rotieren.
     public bool Pinned { get; set; }
     public DateTime? PinnedUntil { get; set; }
+
+    // ── Felder für die Pulse-/Feed-Seite ─────────────────────────────────────
+    // Vom /api/feed-Endpunkt befüllt (beim Widget/Dashboard bleiben sie 0/null).
+    public DateTime CreatedAt { get; set; }
+    public long LikeCount { get; set; }
+    public long DislikeCount { get; set; }
+    // Stimme des aktuellen Besuchers: 1 = 👍, -1 = 👎, 0 = keine.
+    public int MyVote { get; set; }
+}
+
+// Eingabe beim Abstimmen (👍/👎) auf der Pulse-Seite.
+// Value: 1 = Like, -1 = Dislike, 0 = Stimme zurücknehmen.
+// VoterId: anonyme, im Browser (localStorage) erzeugte Kennung für die
+// serverseitige Mehrfach-Vote-Begrenzung (kein Login nötig).
+public class VoteRequest
+{
+    public int Value { get; set; }
+    public string? VoterId { get; set; }
+}
+
+// Antwort nach dem Abstimmen: aktueller Stand der Anzeige + eigene Stimme.
+public class VoteResult
+{
+    public Guid AdId { get; set; }
+    public long LikeCount { get; set; }
+    public long DislikeCount { get; set; }
+    public int MyVote { get; set; }
 }
 
 // Klick-Statistik einer Anzeige für einen Zeitraum (Statistik-Tab im Admin).
@@ -138,6 +173,8 @@ public class AdClickStat
     public string? ImageUrl { get; set; }
     public long Clicks { get; set; }
     public long Impressions { get; set; }
+    public long Likes { get; set; }       // 👍 im Zeitraum
+    public long Dislikes { get; set; }     // 👎 im Zeitraum
 }
 
 public class LoginRequest

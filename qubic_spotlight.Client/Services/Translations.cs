@@ -14,6 +14,7 @@ public static class Translations
     {
         // Header / Navigation
         ["nav.dashboard"] = "Dashboard",
+        ["nav.pulse"] = "Pulse",
         ["nav.ads"] = "Ads",
         ["nav.embed"] = "Embed",
         ["nav.users"] = "Users",
@@ -49,6 +50,27 @@ public static class Translations
 
         // Dashboard
         ["dash.noAds"] = "No ads yet.",
+
+        // Pulse / Feed page
+        ["pulse.title"] = "Pulse",
+        ["pulse.subtitle"] = "What's new across the Qubic ecosystem",
+        ["pulse.tab.stream"] = "Stream",
+        ["pulse.tab.bento"] = "Bento",
+        ["pulse.tab.magazine"] = "Magazine",
+        ["pulse.tab.wall"] = "Wall",
+        ["pulse.sort.new"] = "New",
+        ["pulse.sort.top"] = "Trending",
+        ["pulse.filter.all"] = "All",
+        ["pulse.noAds"] = "Nothing to show yet.",
+        ["pulse.open"] = "Open",
+        ["pulse.like"] = "Like",
+        ["pulse.dislike"] = "Dislike",
+        ["pulse.featured"] = "Featured",
+        ["pulse.justNow"] = "just now",
+        ["pulse.minutesAgo"] = "{0} min ago",
+        ["pulse.hoursAgo"] = "{0} h ago",
+        ["pulse.daysAgo"] = "{0} d ago",
+
         ["stat.price"] = "Price",
         ["stat.marketcap"] = "Market cap",
         ["stat.supply"] = "Supply",
@@ -77,6 +99,8 @@ public static class Translations
         ["col.active"] = "Active",
         ["col.impressions"] = "Impr.",
         ["col.clicks"] = "Clicks",
+        ["col.likes"] = "👍",
+        ["col.dislikes"] = "👎",
         ["ads.pinnedNow"] = "Currently pinned (takes over the widget)",
         ["ads.pinnedScheduled"] = "Priority set – outside the active window",
         ["col.image"] = "Image",
@@ -175,6 +199,7 @@ public static class Translations
     private static readonly Dictionary<string, string> De = new()
     {
         ["nav.dashboard"] = "Dashboard",
+        ["nav.pulse"] = "Pulse",
         ["nav.ads"] = "Anzeigen",
         ["nav.embed"] = "Embed",
         ["nav.users"] = "Benutzer",
@@ -209,6 +234,27 @@ public static class Translations
         ["account.apikeyCopied"] = "API-Key kopiert.",
 
         ["dash.noAds"] = "Noch keine Anzeigen vorhanden.",
+
+        // Pulse / Feed-Seite
+        ["pulse.title"] = "Pulse",
+        ["pulse.subtitle"] = "Was es Neues im Qubic-Ökosystem gibt",
+        ["pulse.tab.stream"] = "Stream",
+        ["pulse.tab.bento"] = "Bento",
+        ["pulse.tab.magazine"] = "Magazin",
+        ["pulse.tab.wall"] = "Wand",
+        ["pulse.sort.new"] = "Neu",
+        ["pulse.sort.top"] = "Beliebt",
+        ["pulse.filter.all"] = "Alle",
+        ["pulse.noAds"] = "Noch nichts zu zeigen.",
+        ["pulse.open"] = "Öffnen",
+        ["pulse.like"] = "Gefällt mir",
+        ["pulse.dislike"] = "Gefällt mir nicht",
+        ["pulse.featured"] = "Aufmacher",
+        ["pulse.justNow"] = "gerade eben",
+        ["pulse.minutesAgo"] = "vor {0} Min.",
+        ["pulse.hoursAgo"] = "vor {0} Std.",
+        ["pulse.daysAgo"] = "vor {0} T.",
+
         ["stat.price"] = "Preis",
         ["stat.marketcap"] = "Market Cap",
         ["stat.supply"] = "Supply",
@@ -235,6 +281,8 @@ public static class Translations
         ["col.active"] = "Aktiv",
         ["col.impressions"] = "Impr.",
         ["col.clicks"] = "Klicks",
+        ["col.likes"] = "👍",
+        ["col.dislikes"] = "👎",
         ["ads.pinnedNow"] = "Aktuell gepinnt (übernimmt das Widget)",
         ["ads.pinnedScheduled"] = "Priorität gesetzt – außerhalb des aktiven Fensters",
         ["col.image"] = "Bild",

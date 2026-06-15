@@ -21,6 +21,23 @@ public static class ApiEndpoints
             QubicStatsWorker.Latest is { } s ? Results.Ok(s) : Results.NoContent())
            .WithSummary("Qubic-Netzwerk-Kennzahlen (gecacht)");
 
+        // ── Pulse-/Feed-Seite ──────────────────────────────────────────────────
+        // Sortierter, optional gefilterter Anzeigen-Strom für die zweite öffentliche
+        // Seite. voterId (anonyme Browser-Kennung) markiert die eigene Stimme.
+        api.MapGet("/feed", (AdService ads, HttpContext ctx, string? sort, string? ecosystem, string? voterId) =>
+            Results.Ok(ads.Feed(sort, ecosystem, VoterKey(ctx, voterId))))
+           .WithSummary("Anzeigen-Feed (sort=new|top, optional ecosystem)");
+
+        api.MapGet("/feed/ecosystems", (AdService ads) => Results.Ok(ads.Ecosystems()))
+           .WithSummary("Verfügbare Ecosystem-Gruppen (für Feed-Filter)");
+
+        // Stimme abgeben (👍/👎). Value: 1 = Like, -1 = Dislike, 0 = zurücknehmen.
+        api.MapPost("/ads/{id:guid}/vote", (Guid id, VoteRequest req, HttpContext ctx, AdService ads, LiteDbContext db) =>
+        {
+            if (db.GetAd(id) is null) return Results.NotFound();
+            return Results.Ok(ads.Vote(id, VoterKey(ctx, req.VoterId), req.Value));
+        }).WithSummary("Anzeige bewerten (Like/Dislike)");
+
         // Impression-Zählung (Beacon vom Widget)
         api.MapPost("/ads/{id:guid}/impression", (Guid id, HttpContext ctx, LiteDbContext db) =>
         {
@@ -222,5 +239,17 @@ public static class ApiEndpoints
         var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes("qspot:" + ip));
         return Convert.ToHexString(bytes)[..16];
+    }
+
+    // Identität für die anonyme Vote-Begrenzung: bevorzugt die im Browser erzeugte
+    // VoterId (genau ein Besucher), sonst Fallback auf die gehashte IP.
+    private static string VoterKey(HttpContext ctx, string? voterId)
+    {
+        if (!string.IsNullOrWhiteSpace(voterId))
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes("qspot-voter:" + voterId));
+            return "v" + Convert.ToHexString(bytes)[..15];
+        }
+        return HashIp(ctx);
     }
 }

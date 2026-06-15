@@ -31,7 +31,9 @@ public class AdService
                     Ecosystem = a.Ecosystem,
                     ImageUrl = a.ImageUrl,
                     Clicks = c.clicks,
-                    Impressions = c.impressions
+                    Impressions = c.impressions,
+                    Likes = c.likes,
+                    Dislikes = c.dislikes
                 };
             })
             .OrderByDescending(s => s.Clicks)
@@ -69,6 +71,72 @@ public class AdService
             // Frühestes Pin-Ende: danach soll das Widget neu laden und wieder rotieren.
             PinnedUntil = pinned.Count > 0 ? pinned.Min(p => p.PinnedUntil) : null
         }).ToList();
+    }
+
+    // ── Pulse-/Feed-Seite ─────────────────────────────────────────────────────
+    // Liste aller öffentlich sichtbaren Anzeigen für die Feed-Seite, sortiert und
+    // optional nach Ecosystem gefiltert. voterKey (gehasht) markiert die eigene
+    // Stimme je Anzeige. Kein Zufall, kein Pin – hier zählt Aktualität/Beliebtheit.
+    // sort: "top" = Trending (Score mit Zeit-Abfall), sonst "new" (neueste zuerst).
+    public List<PublicAd> Feed(string? sort, string? ecosystem, string? voterKey, int max = 200)
+    {
+        var all = _db.GetVisibleAds();
+
+        if (!string.IsNullOrWhiteSpace(ecosystem))
+            all = all.Where(a => string.Equals(a.Ecosystem, ecosystem, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        var now = DateTime.UtcNow;
+        IEnumerable<Ad> ordered = string.Equals(sort, "top", StringComparison.OrdinalIgnoreCase)
+            ? all.OrderByDescending(a => TrendingScore(a, now)).ThenByDescending(a => a.CreatedAt)
+            : all.OrderByDescending(a => a.CreatedAt);
+
+        var votes = string.IsNullOrEmpty(voterKey)
+            ? new Dictionary<Guid, int>()
+            : _db.GetVotesByVoter(voterKey);
+
+        return ordered.Take(max).Select(a => new PublicAd
+        {
+            Id = a.Id,
+            Title = a.Title,
+            Description = a.Description,
+            LinkUrl = a.LinkUrl,
+            ImageUrl = a.ImageUrl,
+            Ecosystem = a.Ecosystem,
+            CreatedAt = a.CreatedAt,
+            LikeCount = a.LikeCount,
+            DislikeCount = a.DislikeCount,
+            MyVote = votes.TryGetValue(a.Id, out var v) ? v : 0
+        }).ToList();
+    }
+
+    // Reddit-/HN-naher Score: (Likes − Dislikes) mit logarithmischer Dämpfung,
+    // plus Zeit-Bonus, damit Neues mit guter Resonanz nach oben kommt.
+    private static double TrendingScore(Ad a, DateTime now)
+    {
+        var net = a.LikeCount - a.DislikeCount;
+        var sign = Math.Sign(net);
+        var magnitude = Math.Log10(Math.Abs(net) + 1);
+        var ageHours = Math.Max((now - a.CreatedAt).TotalHours, 0);
+        var recency = 1.0 / Math.Pow(ageHours + 2, 0.5);   // jüngere Anzeigen leicht bevorzugt
+        return sign * magnitude + recency;
+    }
+
+    // Verfügbare Ecosystem-Gruppen unter den sichtbaren Anzeigen (für Filter-Chips).
+    public List<string> Ecosystems()
+        => _db.GetVisibleAds()
+            .Select(a => a.Ecosystem)
+            .Where(e => !string.IsNullOrWhiteSpace(e))
+            .Select(e => e!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(e => e, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    // Registriert eine Stimme (👍/👎) und liefert den neuen Stand zurück.
+    public VoteResult Vote(Guid adId, string voterKey, int value)
+    {
+        var clamped = Math.Sign(value);   // nur -1 / 0 / 1 zulassen
+        var (likes, dislikes, myVote) = _db.SetVote(adId, voterKey, clamped);
+        return new VoteResult { AdId = adId, LikeCount = likes, DislikeCount = dislikes, MyVote = myVote };
     }
 
     // Anzeige ist jetzt aktiv gepinnt, wenn das Flag gesetzt ist, die aktuelle
