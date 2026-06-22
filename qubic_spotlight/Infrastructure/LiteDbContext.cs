@@ -51,11 +51,15 @@ public class LiteDbContext : IDisposable
 
     // ── Ads ──────────────────────────────────────────────────────────────────
 
+    // Verwaltungslisten: neueste zuerst (Startdatum absteigend), bei gleichem
+    // Datum greift die manuelle Reihenfolge (SortOrder) als Tie-Breaker.
     public List<Ad> GetAllAds()
     {
         lock (_lock)
-            return _db.GetCollection<Ad>("ads")
-                .Query().OrderBy(x => x.SortOrder).ToList();
+            return _db.GetCollection<Ad>("ads").FindAll()
+                .OrderByDescending(x => x.StartDate)
+                .ThenBy(x => x.SortOrder)
+                .ToList();
     }
 
     public List<Ad> GetAdsByOwner(string ownerUserId)
@@ -63,7 +67,9 @@ public class LiteDbContext : IDisposable
         lock (_lock)
             return _db.GetCollection<Ad>("ads")
                 .Find(x => x.OwnerUserId == ownerUserId)
-                .OrderBy(x => x.SortOrder).ToList();
+                .OrderByDescending(x => x.StartDate)
+                .ThenBy(x => x.SortOrder)
+                .ToList();
     }
 
     // Öffentlich sichtbare Anzeigen (Sichtbarkeitsregel aus dem Konzept).

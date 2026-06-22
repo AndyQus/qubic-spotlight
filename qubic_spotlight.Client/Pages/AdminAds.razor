@@ -138,6 +138,14 @@
     private string PriorityTooltip(Ad a)
         => IsPinnedNow(a) ? L["ads.pinnedNow"] : L["ads.pinnedScheduled"];
 
+    // Aktuell gepinnte Anzeigen werden in der Tabelle hervorgehoben: dezenter
+    // farbiger Hintergrund + linker Akzentbalken in der Sekundärfarbe.
+    private string PinnedRowStyle(Ad a, int _)
+        => IsPinnedNow(a)
+            ? "background-color:rgba(var(--mud-palette-secondary-rgb),0.10);"
+              + "box-shadow:inset 3px 0 0 0 var(--mud-palette-secondary);"
+            : string.Empty;
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthProvider.GetAuthenticationStateAsync();
@@ -151,7 +159,11 @@
         _loading = true;
         _ads = _manager ? await Api.GetAllAdsAsync() : await Api.GetMyAdsAsync();
         _expired = _ads.Where(IsExpired).ToList();
-        _active = _ads.Where(a => !IsExpired(a)).ToList();
+        // Aktuell gepinnte Anzeigen stehen oben, danach die übrige Server-Reihenfolge
+        // (neueste zuerst nach Startdatum).
+        _active = _ads.Where(a => !IsExpired(a))
+                      .OrderByDescending(IsPinnedNow)
+                      .ToList();
         _loading = false;
     }
 
@@ -226,7 +238,8 @@
     // Tabelle für aktive/abgelaufene Anzeigen — erste Spalte zeigt das Bild,
     // die Zeile ist doppelt so hoch (72px) für die Vorschau.
     private RenderFragment AdTable(List<Ad> items, string emptyText) =>
-        @<MudTable Items="items" Hover="true" Striped="true" Loading="_loading" Dense="true">
+        @<MudTable Items="items" Hover="true" Striped="true" Loading="_loading" Dense="true"
+                  RowStyleFunc="@PinnedRowStyle">
             <HeaderContent>
                 <MudTh>@L["col.image"]</MudTh>
                 <MudTh>@L["col.title"]</MudTh>
