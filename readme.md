@@ -25,6 +25,8 @@ Spotlight gathers this news in one place and makes it visible everywhere:
 Teams and product owners maintain their ads themselves — **directly in the portal or
 via the API** from their own applications (create, update, delete).
 
+I provide this web application to the marketing team **free of charge**.
+
 ## Project structure
 
 ```

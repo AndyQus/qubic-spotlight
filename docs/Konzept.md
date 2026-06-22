@@ -36,6 +36,8 @@ Pflegen können das die Beteiligten selbst: Teams und Produkt-Betreiber legen ih
 Anzeigen (Neuigkeiten/Werbung) **direkt im Portal** an — oder **automatisiert aus
 ihren eigenen Anwendungen über die API** (anlegen, ändern, löschen).
 
+Diese Webanwendung stelle ich dem Marketing-Team **kostenfrei** zur Verfügung.
+
 ---
 
 ## 1. Ziel & Nutzen

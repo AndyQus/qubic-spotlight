@@ -27,6 +27,8 @@ Spotlight bündelt diese Neuigkeiten an einem Ort und macht sie überall sichtba
 Teams und Produkt-Betreiber pflegen ihre Anzeigen selbst — **direkt im Portal oder
 über die API** aus ihren eigenen Anwendungen (anlegen, ändern, löschen).
 
+Diese Webanwendung stelle ich dem Marketing-Team **kostenfrei** zur Verfügung.
+
 ## Projektstruktur
 
 ```
