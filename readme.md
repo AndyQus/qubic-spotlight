@@ -8,6 +8,23 @@ Stack: **.NET 10 Blazor Web App** (WebAssembly) · **MudBlazor** · **LiteDB** �
 REST API with **Swagger** · JWT + API key. Built following the pattern of
 `qubic_doge_stats`.
 
+## Why Qubic Spotlight? (The motivation)
+
+The Qubic ecosystem thrives on **Discord**: projects are announced there, across many
+channels, working groups, and by now companies and products too. But with so many
+channels it's **easy to lose track** — news gets buried, and anyone not on Discord,
+or offline for a while, misses it entirely.
+
+Spotlight gathers this news in one place and makes it visible everywhere:
+
+1. **A widget for third-party websites** (the original idea): a single line of code
+   embeds the ecosystem's news as a banner/overlay on any site — everyone joins in,
+   everyone benefits.
+2. **A dedicated public page** showing all news in chronological order.
+
+Teams and product owners maintain their ads themselves — **directly in the portal or
+via the API** from their own applications (create, update, delete).
+
 ## Project structure
 
 ```

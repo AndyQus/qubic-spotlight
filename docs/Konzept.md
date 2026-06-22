@@ -14,6 +14,30 @@ Status: Entwurf v0.2 — abgestimmt auf den vorhandenen Stack der App
 
 ---
 
+## 0. Auslöser — warum Qubic Spotlight?
+
+Das Qubic-Ökosystem lebt stark über **Discord**: dort werden Projekte vorgestellt,
+es gibt viele Kanäle, Arbeitsgruppen und inzwischen auch Firmen und Produkte. Das
+ist großartig — aber man **verliert den Überblick**. Neuigkeiten gehen in der Menge
+an Kanälen unter, und wer **nicht auf Discord** ist oder **eine Weile offline** war,
+bekommt sie gar nicht mit.
+
+**Qubic Spotlight** löst das mit zwei Bausteinen:
+
+1. **Widget für Fremd-Webseiten (die ursprüngliche Idee):** Mit einer einzigen
+   Code-Zeile lassen sich die Neuigkeiten des Ökosystems als Banner/Overlay auf
+   beliebigen Seiten einbinden. Wenn alle mitmachen, profitiert jeder — die
+   Reichweite jedes Projekts wächst, ohne dass jemand Discord durchsuchen muss.
+2. **Eigene öffentliche Seite, chronologisch:** Dieselben Neuigkeiten werden zentral
+   und nach Datum sortiert angezeigt — ein Ort, an dem man das ganze Ökosystem auf
+   einen Blick durchscrollen kann.
+
+Pflegen können das die Beteiligten selbst: Teams und Produkt-Betreiber legen ihre
+Anzeigen (Neuigkeiten/Werbung) **direkt im Portal** an — oder **automatisiert aus
+ihren eigenen Anwendungen über die API** (anlegen, ändern, löschen).
+
+---
+
 ## 1. Ziel & Nutzen
 
 - Eine zentrale Stelle, an der das Qubic-Ökosystem seine Tools, Blog-Beiträge und
