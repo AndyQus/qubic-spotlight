@@ -144,6 +144,9 @@
       if (ad.imageUrl) {
         var img = document.createElement("img");
         img.className = "thumb"; img.src = ad.imageUrl; img.alt = "";
+        // Bei nicht mehr erreichbarer/kaputter Bild-URL das Bild entfernen,
+        // damit kein leerer Platzhalter (oder ein falsches Bild) erscheint.
+        img.onerror = function () { img.remove(); };
         a.appendChild(img);
       }
       var box = document.createElement("div");

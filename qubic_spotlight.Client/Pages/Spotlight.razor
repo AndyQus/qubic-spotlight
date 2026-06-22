@@ -326,7 +326,7 @@
         @if (!string.IsNullOrEmpty(ad.ImageUrl))
         {
             <a class="spotlight-tile-media" href="@ClickUrl(ad)" target="_blank" rel="noopener">
-                <img src="@ad.ImageUrl" alt="" />
+                <img src="@ad.ImageUrl" alt="" onerror="this.closest('.spotlight-tile-media').remove()" />
             </a>
         }
         <div class="spotlight-tile-body">
@@ -342,7 +342,7 @@
         @if (!string.IsNullOrEmpty(ad.ImageUrl))
         {
             <a class="spotlight-hero-media" href="@ClickUrl(ad)" target="_blank" rel="noopener">
-                <img src="@ad.ImageUrl" alt="" />
+                <img src="@ad.ImageUrl" alt="" onerror="this.closest('.spotlight-hero-media').remove()" />
             </a>
         }
         <div class="spotlight-hero-body">
