@@ -88,6 +88,20 @@ public class LiteDbContext : IDisposable
             return _db.GetCollection<Ad>("ads").FindById(id);
     }
 
+    // Erste Anzeige mit identischer Ziel-URL (LinkUrl), optional eine bestimmte
+    // Anzeige ausgenommen (für Updates). Vergleich case-insensitiv und ohne
+    // führende/abschließende Leerzeichen. In-Memory gefiltert (kleine Datenmenge).
+    public Ad? FindByLinkUrl(string linkUrl, Guid? excludeId = null)
+    {
+        var normalized = (linkUrl ?? string.Empty).Trim();
+        if (normalized.Length == 0) return null;
+        lock (_lock)
+            return _db.GetCollection<Ad>("ads").FindAll()
+                .FirstOrDefault(x => (excludeId == null || x.Id != excludeId)
+                    && string.Equals((x.LinkUrl ?? string.Empty).Trim(), normalized,
+                        StringComparison.OrdinalIgnoreCase));
+    }
+
     public void InsertAd(Ad ad)
     {
         lock (_lock)

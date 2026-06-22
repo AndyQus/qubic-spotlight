@@ -142,6 +142,7 @@ public static class Translations
         ["addlg.priorityEndTime"] = "End (time)",
         ["addlg.priorityRange"] = "Window end must be after the start.",
         ["addlg.uploadFail"] = "Upload failed (type/size?).",
+        ["addlg.duplicateUrl"] = "This URL is already used by the ad \"{0}\".",
 
         // Users
         ["users.title"] = "Users",
@@ -323,6 +324,7 @@ public static class Translations
         ["addlg.priorityEndTime"] = "Ende (Uhrzeit)",
         ["addlg.priorityRange"] = "Das Fensterende muss nach dem Start liegen.",
         ["addlg.uploadFail"] = "Upload fehlgeschlagen (Typ/Größe?).",
+        ["addlg.duplicateUrl"] = "Diese URL wird bereits von der Anzeige \"{0}\" verwendet.",
 
         ["users.title"] = "Benutzer",
         ["users.new"] = "Neuer Benutzer",

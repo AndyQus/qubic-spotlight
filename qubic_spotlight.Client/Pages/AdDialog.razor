@@ -4,6 +4,10 @@
 
 <MudDialog>
     <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-3">@_error</MudAlert>
+        }
         <MudTextField @bind-Value="_input.Title" Label='@L["addlg.headline"]' MaxLength="80"
                       Variant="Variant.Outlined" Class="mb-3" Required="true" />
         <MudTextField @bind-Value="_input.Description" Label='@L["addlg.desc"]' MaxLength="280"
@@ -61,10 +65,6 @@
             }
         }
 
-        @if (_error is not null)
-        {
-            <MudAlert Severity="Severity.Error" Class="mt-3">@_error</MudAlert>
-        }
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">@L["common.cancel"]</MudButton>
@@ -170,9 +170,24 @@
 
         var (ok, error) = await Api.SaveAdAsync(_input, Ad?.Id, Manager);
         _busy = false;
-        if (!ok) { _error = error; return; }
+        if (!ok) { _error = Localize(error); return; }
         Snackbar.Add(L["msg.saved"], Severity.Success);
         Dialog.Close(DialogResult.Ok(true));
+    }
+
+    // Server-Fehler in lokalisierte Meldung übersetzen. Maschinenlesbare Codes
+    // (z. B. "duplicate_url:<Titel>") werden über die Sprachdateien aufgelöst;
+    // alle übrigen Texte werden unverändert durchgereicht.
+    private string? Localize(string? error)
+    {
+        if (string.IsNullOrEmpty(error)) return error;
+        const string dupPrefix = "duplicate_url:";
+        if (error.StartsWith(dupPrefix, StringComparison.Ordinal))
+        {
+            var title = error[dupPrefix.Length..];
+            return L.T("addlg.duplicateUrl", title);
+        }
+        return error;
     }
 
     private void Cancel() => Dialog.Cancel();

@@ -156,6 +156,9 @@ public class AdService
         if (!isManager && input.IsActive && _db.CountActiveByOwner(ownerUserId) >= MaxActivePerOwner)
             return (false, $"Limit von {MaxActivePerOwner} aktiven Anzeigen erreicht.", null);
 
+        if (DuplicateLinkUrl(input.LinkUrl, null) is { } dup)
+            return (false, DuplicateUrlError(dup), null);
+
         var ad = new Ad { OwnerUserId = ownerUserId };
         Apply(ad, input);
         _db.InsertAd(ad);
@@ -173,6 +176,9 @@ public class AdService
             && _db.CountActiveByOwner(currentUserId) >= MaxActivePerOwner)
             return (false, $"Limit von {MaxActivePerOwner} aktiven Anzeigen erreicht.", null);
 
+        if (DuplicateLinkUrl(input.LinkUrl, id) is { } dup)
+            return (false, DuplicateUrlError(dup), null);
+
         Apply(ad, input);
         _db.UpdateAd(ad);
         return (true, null, ad);
@@ -186,6 +192,15 @@ public class AdService
         _db.DeleteAd(id);
         return (true, null);
     }
+
+    // Liefert eine bereits existierende Anzeige mit derselben Ziel-URL (oder null).
+    // Beim Update wird die Anzeige selbst (excludeId) ausgenommen.
+    private Ad? DuplicateLinkUrl(string? linkUrl, Guid? excludeId)
+        => _db.FindByLinkUrl(linkUrl ?? string.Empty, excludeId);
+
+    // Maschinenlesbarer Fehlercode + Titel der kollidierenden Anzeige. Der Client
+    // übersetzt das anhand der aktiven Sprache (siehe Translations: addlg.duplicateUrl).
+    private static string DuplicateUrlError(Ad dup) => $"duplicate_url:{dup.Title}";
 
     private static void Apply(Ad ad, AdInput input)
     {
