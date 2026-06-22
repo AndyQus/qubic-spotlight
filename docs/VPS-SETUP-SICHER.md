@@ -32,7 +32,7 @@ Let's-Encrypt-TLS).
   nicht geschehen, lokal auf deinem Entwicklungsrechner:
 
   ```bash
-  docker build -t andyqus/qubic_spotlight:latest -f dockerfile .
+  docker build -t andyqus/qubic_spotlight:latest .
   docker login
   docker push andyqus/qubic_spotlight:latest
   ```

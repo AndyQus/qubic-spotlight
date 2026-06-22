@@ -16,7 +16,7 @@ qubic_spotlight/            Server (ASP.NET Core, API, LiteDB, Auth, Worker)
 qubic_spotlight.Client/     Blazor WASM (Dashboard, Admin-UI)
 Shared/                     gemeinsame Models & DTOs
 docs/                       Konzept + Branding (Logo)
-dockerfile, docker-compose.yaml
+Dockerfile, docker-compose.yaml
 ```
 
 ## Lokal starten
@@ -74,13 +74,68 @@ nicht ins Layout der Fremdseite ein. Das fertige Snippet gibt es auch im Admin u
 ## Docker / Veröffentlichung
 
 ```bash
-docker build -t andyqus/qubic_spotlight:latest -f dockerfile .
+docker build -t andyqus/qubic_spotlight:latest .
 docker push andyqus/qubic_spotlight:latest
 ```
 
 Auf dem Server (siehe `docker-compose.yaml`) vor dem ersten Start setzen:
 `JWT_SECRET` (langes Zufallsgeheimnis), `ADMIN_EMAIL`, `ADMIN_PASSWORD`. Daten
 (LiteDB-Datei + Uploads) liegen im Volume unter `/data`.
+
+### Deployment für Admins (Docker)
+
+Die Geheimnisse landen **nicht** im Image oder im Repo, sondern in einer `.env`-Datei,
+die ausschließlich auf dem Server liegt. Ablauf:
+
+**1. Image laden**
+
+```bash
+docker pull andyqus/qubic_spotlight:latest
+```
+
+(Alternativ selbst bauen: `docker build -t andyqus/qubic_spotlight:latest .`)
+
+**2. `docker-compose.yaml` + `.env.example` auf den Server legen**
+
+Beide Dateien liegen im Repo und müssen im selben Verzeichnis auf dem Server liegen.
+
+**3. Secrets eintragen** – `.env` aus der Vorlage erzeugen und befüllen:
+
+```bash
+cp .env.example .env
+```
+
+```env
+JWT_SECRET=<langes Zufallsgeheimnis, min. 32 Zeichen>
+ADMIN_EMAIL=admin@qubic.org
+ADMIN_PASSWORD=<sicheres Startpasswort>
+```
+
+`JWT_SECRET` z. B. erzeugen mit `openssl rand -base64 48`.
+
+**4. Starten**
+
+```bash
+docker compose up -d
+```
+
+Compose liest die `.env` automatisch ein und reicht die Werte als Umgebungsvariablen
+in den Container.
+
+**Wichtig für den Betrieb:**
+
+- Die echte `.env` gehört **nicht ins Git** (steht in `.gitignore`); nur `.env.example`
+  ist eingecheckt.
+- **Fail-fast:** `JWT_SECRET` und `ADMIN_PASSWORD` sind in der Compose-Datei mit `:?`
+  markiert – fehlt ein Wert, **bricht der Start mit Fehlermeldung ab** (Absicht).
+- **Persistente Daten** liegen im Volume-Mount `/root/spotlight/data` → `/data`. Pfad
+  ggf. ans System anpassen (Zeile 18 der Compose-Datei) und sichern.
+- Die App lauscht im Container auf Port `8080` (auf Host `8080` gemappt). Davor gehört
+  ein Reverse-Proxy (z. B. Caddy/Nginx) für HTTPS – im Repo liegt eine
+  `Caddy.Dockerfile` als Ausgangspunkt.
+- `ADMIN_EMAIL` / `ADMIN_PASSWORD` wirken **nur beim allerersten Start** (solange die DB
+  leer ist). Spätere Änderungen daran haben keinen Effekt – das Passwort wird dann über
+  die App geändert.
 
 ## Konfiguration (Umgebungsvariablen)
 
