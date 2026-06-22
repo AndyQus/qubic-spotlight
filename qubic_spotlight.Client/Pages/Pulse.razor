@@ -102,6 +102,34 @@
         }
         else if (_loaded) { @Empty }
     </MudTabPanel>
+
+    <MudTabPanel Text="@L["pulse.tab.slide"]" Icon="@Icons.Material.Filled.Slideshow">
+        @if (_ads.Count > 0)
+        {
+            <MudCarousel Class="mud-width-full" Style="height:220px; border-radius:12px;"
+                         ShowArrows="true" ShowBullets="true" AutoCycle="true"
+                         AutoCycleTime="TimeSpan.FromSeconds(5)" TData="PublicAd" ItemsSource="_ads">
+                <ItemTemplate Context="ad">
+                    <a href="@ClickUrl(ad)" target="_blank" rel="noopener"
+                       style="display:flex; height:100%; text-decoration:none; background:var(--mud-palette-surface);">
+                        @if (!string.IsNullOrEmpty(ad.ImageUrl))
+                        {
+                            <img src="@ad.ImageUrl" alt="" style="width:300px; object-fit:cover;" />
+                        }
+                        <div style="padding:24px; display:flex; flex-direction:column; justify-content:center;">
+                            <h2 style="margin:0 0 8px; color:var(--mud-palette-text-primary); font-weight:500;">@ad.Title</h2>
+                            <p style="margin:0; color:var(--mud-palette-text-secondary); max-width:560px;">@ad.Description</p>
+                            @if (!string.IsNullOrEmpty(ad.Ecosystem))
+                            {
+                                <span class="qs-ad-eco">@ad.Ecosystem</span>
+                            }
+                        </div>
+                    </a>
+                </ItemTemplate>
+            </MudCarousel>
+        }
+        else if (_loaded) { @Empty }
+    </MudTabPanel>
 </MudTabs>
 
 @code {
@@ -125,7 +153,7 @@
 
         // Gemerkte Einstellungen aus dem localStorage laden.
         var tab = await GetItem(TabKey);
-        if (int.TryParse(tab, out var t) && t is >= 0 and <= 3) _tab = t;
+        if (int.TryParse(tab, out var t) && t is >= 0 and <= 4) _tab = t;
         var sort = await GetItem(SortKey);
         if (sort is "new" or "top") _sort = sort;
         _eco = await GetItem(EcoKey);
