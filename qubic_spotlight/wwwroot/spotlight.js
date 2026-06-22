@@ -94,10 +94,10 @@
       ".thumb{width:64px;height:64px;object-fit:cover;border-radius:8px;flex:0 0 auto;background:#0d1117;}",
       ".t{font-size:14px;font-weight:500;color:" + title + ";margin:0 0 3px;}",
       ".p{font-size:12px;color:" + text + ";margin:0;line-height:1.35;}",
-      ".eco{display:inline-block;margin-top:5px;font-size:10px;color:#7e6fff;border:1px solid #2e2a55;border-radius:999px;padding:1px 8px;}",
+      ".eco{display:inline-block;margin-top:5px;font-size:10px;color:#0d1117;border:1px solid rgba(13,17,23,.35);border-radius:999px;padding:1px 8px;}",
       ".close{position:absolute;top:6px;right:8px;cursor:pointer;border:none;background:none;color:" + text + ";font-size:16px;line-height:1;}",
       ".brand{font-size:10px;color:" + text + ";opacity:.7;text-align:right;padding:2px 8px;}",
-      ".brand b{color:" + accent + ";font-weight:500;}",
+      ".brand b{color:#0d1117;font-weight:600;}",
       // slide-panel
       ".panel{width:320px;padding:16px;transition:transform .5s ease;}",
       // edge-marquee
