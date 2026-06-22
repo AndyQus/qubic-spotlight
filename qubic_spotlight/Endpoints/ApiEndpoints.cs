@@ -21,7 +21,7 @@ public static class ApiEndpoints
             QubicStatsWorker.Latest is { } s ? Results.Ok(s) : Results.NoContent())
            .WithSummary("Qubic-Netzwerk-Kennzahlen (gecacht)");
 
-        // ── Pulse-/Feed-Seite ──────────────────────────────────────────────────
+        // ── Spotlight-/Feed-Seite ───────────────────────────────────────────────
         // Sortierter, optional gefilterter Anzeigen-Strom für die zweite öffentliche
         // Seite. voterId (anonyme Browser-Kennung) markiert die eigene Stimme.
         api.MapGet("/feed", (AdService ads, HttpContext ctx, string? sort, string? ecosystem, string? voterId) =>

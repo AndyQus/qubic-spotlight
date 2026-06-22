@@ -26,8 +26,8 @@ public enum AdEventType
 {
     Impression = 0,
     Click = 1,
-    Like = 2,       // 👍 auf der Pulse-/Feed-Seite
-    Dislike = 3     // 👎 auf der Pulse-/Feed-Seite
+    Like = 2,       // 👍 auf der Spotlight-/Feed-Seite
+    Dislike = 3     // 👎 auf der Spotlight-/Feed-Seite
 }
 
 // ── Datenmodelle (LiteDB-Collections) ────────────────────────────────────────
@@ -60,7 +60,7 @@ public class Ad
     public long ImpressionCount { get; set; }
     public long ClickCount { get; set; }
 
-    // ── Bewertungen (Pulse-/Feed-Seite, 👍/👎) ───────────────────────────────
+    // ── Bewertungen (Spotlight-/Feed-Seite, 👍/👎) ───────────────────────────
     // Denormalisierte Zähler, bei jedem Vote aus ad_events neu berechnet.
     public long LikeCount { get; set; }
     public long DislikeCount { get; set; }
@@ -136,7 +136,7 @@ public class PublicAd
     public bool Pinned { get; set; }
     public DateTime? PinnedUntil { get; set; }
 
-    // ── Felder für die Pulse-/Feed-Seite ─────────────────────────────────────
+    // ── Felder für die Spotlight-/Feed-Seite ─────────────────────────────────
     // Vom /api/feed-Endpunkt befüllt (beim Widget/Dashboard bleiben sie 0/null).
     public DateTime CreatedAt { get; set; }
     public long LikeCount { get; set; }
@@ -145,7 +145,7 @@ public class PublicAd
     public int MyVote { get; set; }
 }
 
-// Eingabe beim Abstimmen (👍/👎) auf der Pulse-Seite.
+// Eingabe beim Abstimmen (👍/👎) auf der Spotlight-Seite.
 // Value: 1 = Like, -1 = Dislike, 0 = Stimme zurücknehmen.
 // VoterId: anonyme, im Browser (localStorage) erzeugte Kennung für die
 // serverseitige Mehrfach-Vote-Begrenzung (kein Login nötig).

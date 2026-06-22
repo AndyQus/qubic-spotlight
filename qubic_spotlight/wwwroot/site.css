@@ -1,4 +1,4 @@
-/* Qubic Spotlight – globale Styles (ergänzend zum MudBlazor-Theme) */
+﻿/* Qubic Spotlight – globale Styles (ergänzend zum MudBlazor-Theme) */
 html, body {
     margin: 0;
     font-family: 'Roboto', sans-serif;
@@ -12,7 +12,7 @@ a { color: var(--mud-palette-secondary, #4EE0FC); }
 .qs-logo img { height: 64px; }
 
 /* .mud-appbar, .mud-appbar .mud-toolbar { min-height: 84px; height: 84px; } */
-.mud-layout .mud-main-content { padding-top: 84px; }
+/* .mud-layout .mud-main-content { padding-top: 84px; } */
 
 /* ── Qubic-Netzwerk-Statistikleiste (Dashboard) ─────────────────────────── */
 .qs-stats {
@@ -40,6 +40,7 @@ a { color: var(--mud-palette-secondary, #4EE0FC); }
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 16px;
+    padding: 8px 0;
 }
 .qs-ad-card {
     background: var(--mud-palette-surface, #1a2332);
@@ -61,161 +62,172 @@ a { color: var(--mud-palette-secondary, #4EE0FC); }
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   Pulse / Feed-Seite (/pulse)
+   Spotlight / Feed-Seite (/ und /pulse)
    ════════════════════════════════════════════════════════════════════════ */
 
 /* Kopf + Sortierung + Filter ----------------------------------------------- */
-.pulse-head {
+.spotlight-head {
     display: flex; justify-content: space-between; align-items: center;
     gap: 16px; flex-wrap: wrap; margin: 8px 0 6px;
 }
-.pulse-head-title { flex: 0 0 auto; }
-.pulse-h1 { margin: 0; font-size: 26px; font-weight: 600; color: var(--mud-palette-text-primary, #f2f5fa); }
-.pulse-sub { margin-top: 2px; font-size: 14px; color: var(--mud-palette-text-secondary, #b9c2cf); }
+.spotlight-sort { flex: 0 0 auto; }
+.spotlight-h1 { margin: 0; font-size: 26px; font-weight: 600; color: var(--mud-palette-text-primary, #f2f5fa); }
+.spotlight-sub { margin-top: 2px; font-size: 14px; color: var(--mud-palette-text-secondary, #b9c2cf); }
 
-.pulse-sort {
+.spotlight-sort {
     display: flex; gap: 4px; padding: 3px;
     background: var(--mud-palette-surface, #1a2332);
     border: 1px solid var(--mud-palette-lines-default, #243246); border-radius: 999px;
 }
-.pulse-seg {
+.spotlight-seg {
     border: none; background: transparent; cursor: pointer; font-size: 14px;
     color: var(--mud-palette-text-secondary, #b9c2cf); padding: 6px 16px; border-radius: 999px;
     transition: background .12s ease, color .12s ease;
 }
-.pulse-seg.on { background: var(--mud-palette-primary, #7e6fff); color: #fff; }
+.spotlight-seg.on { background: var(--mud-palette-primary, #7e6fff); color: #fff; }
 
 /* In der Kopfzeile mittig zwischen Titel (links) und Neu/Beliebt (rechts). */
-.pulse-filter { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto; justify-content: center; }
-.pulse-sort { flex: 0 0 auto; }
-.pulse-chip {
+/* .spotlight-filter { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto; justify-content: center; } */
+.spotlight-filter { flex: 0 0 auto; }
+
+
+.spotlight-chip {
     border: 1px solid var(--mud-palette-lines-default, #243246); background: transparent; cursor: pointer;
     color: var(--mud-palette-text-secondary, #b9c2cf); border-radius: 999px; padding: 5px 14px; font-size: 13px;
     transition: border-color .12s ease, color .12s ease, background .12s ease;
 }
-.pulse-chip:hover { border-color: var(--mud-palette-secondary, #4EE0FC); }
-.pulse-chip.on {
+.spotlight-chip:hover { border-color: var(--mud-palette-secondary, #4EE0FC); }
+.spotlight-chip.on {
     border-color: var(--mud-palette-primary, #7e6fff); color: var(--mud-palette-primary, #7e6fff);
     background: rgba(126, 111, 255, .12);
 }
 
 /* Gemeinsame Bausteine ----------------------------------------------------- */
-.pulse-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.pulse-time { font-size: 12px; color: var(--mud-palette-text-secondary, #b9c2cf); }
-.pulse-post-title, .pulse-tile-title, .pulse-hero-title {
+.spotlight-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.spotlight-time { font-size: 12px; color: var(--mud-palette-text-secondary, #b9c2cf); }
+.spotlight-post-title, .spotlight-tile-title, .spotlight-hero-title {
     text-decoration: none; color: var(--mud-palette-text-primary, #f2f5fa); font-weight: 600; display: block;
 }
-.pulse-post-title:hover, .pulse-tile-title:hover, .pulse-hero-title:hover { color: var(--mud-palette-secondary, #4EE0FC); }
-.pulse-post-text, .pulse-tile-text, .pulse-hero-text {
+.spotlight-post-title:hover, .spotlight-tile-title:hover, .spotlight-hero-title:hover { color: var(--mud-palette-secondary, #4EE0FC); }
+.spotlight-post-text, .spotlight-tile-text, .spotlight-hero-text {
     margin: 0; color: var(--mud-palette-text-secondary, #b9c2cf); font-size: 13px; line-height: 1.45;
 }
 
+.spotlight-content {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px; flex-wrap: wrap; margin: 8px 0 6px;
+}
+
 /* Vote-Leiste (👍/👎 + Öffnen) */
-.pulse-votes { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; }
-.pulse-vote {
+.spotlight-votes { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; }
+.spotlight-vote {
     cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
     border: 1px solid var(--mud-palette-lines-default, #243246); background: transparent;
     color: var(--mud-palette-text-secondary, #b9c2cf); border-radius: 999px; padding: 4px 11px;
     transition: border-color .12s ease, color .12s ease, background .12s ease;
 }
-.pulse-vote:hover { border-color: var(--mud-palette-secondary, #4EE0FC); }
-.pulse-vote .cnt { font-variant-numeric: tabular-nums; }
-.pulse-vote.up.on { color: #22c55e; border-color: #22c55e; background: rgba(34, 197, 94, .12); }
-.pulse-vote.down.on { color: #ef4444; border-color: #ef4444; background: rgba(239, 68, 68, .12); }
-.pulse-open {
+.spotlight-vote:hover { border-color: var(--mud-palette-secondary, #4EE0FC); }
+.spotlight-vote .cnt { font-variant-numeric: tabular-nums; }
+.spotlight-vote.up.on { color: #22c55e; border-color: #22c55e; background: rgba(34, 197, 94, .12); }
+.spotlight-vote.down.on { color: #ef4444; border-color: #ef4444; background: rgba(239, 68, 68, .12); }
+.spotlight-open {
     margin-left: auto; white-space: nowrap; font-size: 13px; text-decoration: none;
     color: var(--mud-palette-secondary, #4EE0FC);
 }
 
 /* Tab A — Stream ----------------------------------------------------------- */
-.pulse-stream { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
-.pulse-post {
+.spotlight-stream { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.spotlight-post {
     display: flex; background: var(--mud-palette-surface, #1a2332);
     border: 1px solid var(--mud-palette-lines-default, #243246); border-radius: 14px; overflow: hidden;
     transition: transform .15s ease, border-color .15s ease;
 }
-.pulse-post:hover { transform: translateY(-2px); border-color: var(--mud-palette-secondary, #4EE0FC); }
-.pulse-post-media { flex: 0 0 210px; display: block; }
-.pulse-post-media img { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--mud-palette-background-gray, #0d1117); }
-.pulse-post-body { flex: 1; min-width: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
-.pulse-post-title { font-size: 18px; }
+.spotlight-post:hover { transform: translateY(-2px); border-color: var(--mud-palette-secondary, #4EE0FC); }
+.spotlight-post-media { flex: 0 0 210px; display: block; }
+.spotlight-post-media img { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--mud-palette-background-gray, #0d1117); }
+.spotlight-post-body { flex: 1; min-width: 0; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.spotlight-post-title { font-size: 18px; }
 
 /* Tab B — Bento ------------------------------------------------------------ */
-.pulse-bento {
+.spotlight-bento {
     display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 180px;
     grid-auto-flow: dense; gap: 14px;
 }
-.pulse-tile {
+.spotlight-tile {
     display: flex; flex-direction: column; height: 100%; overflow: hidden;
     background: var(--mud-palette-surface, #1a2332);
     border: 1px solid var(--mud-palette-lines-default, #243246); border-radius: 14px;
     transition: transform .15s ease, border-color .15s ease;
 }
-.pulse-tile:hover { transform: translateY(-2px); border-color: var(--mud-palette-secondary, #4EE0FC); }
-.pulse-tile-media { display: block; }
-.pulse-tile-media img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--mud-palette-background-gray, #0d1117); }
-.pulse-tile-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
-.pulse-tile-title { font-size: 15px; }
+.spotlight-tile:hover { transform: translateY(-2px); border-color: var(--mud-palette-secondary, #4EE0FC); }
+.spotlight-tile-media { display: block; }
+.spotlight-tile-media img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--mud-palette-background-gray, #0d1117); }
+.spotlight-tile-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+.spotlight-tile-title { font-size: 15px; }
 .bento-empty { } /* Platzhalter */
 .tile-lg { grid-column: span 2; grid-row: span 2; }
 .tile-wide { grid-column: span 2; }
 .tile-tall { grid-row: span 2; }
-/* In Bento füllt das Bild den verfügbaren Raum der (ggf. gespannten) Kachel. */
-.pulse-bento .pulse-tile-media { flex: 1 1 auto; min-height: 0; }
-.pulse-bento .pulse-tile-media img { height: 100%; }
+/* In Bento bekommt das Bild eine feste Höhe, der Text bleibt immer sichtbar
+   (auch in gespannten Kacheln). Der Body füllt den Resthöhenraum. */
+.spotlight-bento .spotlight-tile-media { flex: 0 0 auto; }
+.spotlight-bento .spotlight-tile-media img { height: 150px; }
+.spotlight-bento .tile-lg .spotlight-tile-media img,
+.spotlight-bento .tile-tall .spotlight-tile-media img { height: 220px; }
+.spotlight-bento .spotlight-tile-body { flex: 1 1 auto; overflow: hidden; }
 
 /* Tab C — Magazin ---------------------------------------------------------- */
-.pulse-mag-hero {
+.spotlight-mag-hero {
     display: flex; min-height: 320px; overflow: hidden; margin-bottom: 18px;
     background: var(--mud-palette-surface, #1a2332);
     border: 1px solid var(--mud-palette-lines-default, #243246); border-radius: 16px;
 }
-.pulse-hero-media { flex: 1.3; display: block; }
-.pulse-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--mud-palette-background-gray, #0d1117); }
-.pulse-hero-body { flex: 1; padding: 28px; display: flex; flex-direction: column; gap: 12px; justify-content: center; }
-.pulse-hero-title { font-size: 30px; line-height: 1.15; }
-.pulse-hero-text { font-size: 15px; }
-.pulse-badge {
+.spotlight-hero-media { flex: 1.3; display: block; }
+.spotlight-hero-media img { width: 100%; height: 100%; object-fit: cover; display: block; background: var(--mud-palette-background-gray, #0d1117); }
+.spotlight-hero-body { flex: 1; padding: 28px; display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+.spotlight-hero-title { font-size: 30px; line-height: 1.15; }
+.spotlight-hero-text { font-size: 15px; }
+.spotlight-badge {
     align-self: flex-start; text-transform: uppercase; letter-spacing: .06em; font-size: 11px; font-weight: 600;
     color: var(--mud-palette-primary, #7e6fff); border: 1px solid var(--mud-palette-primary, #7e6fff);
     border-radius: 999px; padding: 3px 10px;
 }
-.pulse-mag-rest { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.spotlight-mag-rest { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
 
 /* Tab D — Wand (Masonry über CSS-Spalten) ---------------------------------- */
-.pulse-wall { column-count: 4; column-gap: 14px; }
-.pulse-wall-item {
+.spotlight-wall { column-count: 4; column-gap: 14px; }
+.spotlight-wall-item {
     break-inside: avoid; margin-bottom: 14px; display: flex; flex-direction: column; overflow: hidden;
     background: var(--mud-palette-surface, #1a2332);
     border: 1px solid var(--mud-palette-lines-default, #243246); border-radius: 14px;
     transition: border-color .15s ease;
 }
-.pulse-wall-item:hover { border-color: var(--mud-palette-secondary, #4EE0FC); }
+.spotlight-wall-item:hover { border-color: var(--mud-palette-secondary, #4EE0FC); }
 /* In der Wand behalten Bilder ihre natürliche Höhe → echter Masonry-Effekt. */
-.pulse-wall .pulse-tile-media img { height: auto; max-height: 340px; }
+.spotlight-wall .spotlight-tile-media img { height: auto; max-height: 340px; }
 
 /* Responsiv ---------------------------------------------------------------- */
 @media (max-width: 1100px) {
-    .pulse-bento { grid-template-columns: repeat(3, 1fr); }
-    .pulse-wall { column-count: 3; }
+    .spotlight-bento { grid-template-columns: repeat(3, 1fr); }
+    .spotlight-wall { column-count: 3; }
 }
 @media (max-width: 800px) {
-    .pulse-bento { grid-template-columns: repeat(2, 1fr); }
-    .pulse-wall { column-count: 2; }
-    .pulse-mag-hero { flex-direction: column; min-height: 0; }
-    .pulse-hero-media img { height: 200px; }
+    .spotlight-bento { grid-template-columns: repeat(2, 1fr); }
+    .spotlight-wall { column-count: 2; }
+    .spotlight-mag-hero { flex-direction: column; min-height: 0; }
+    .spotlight-hero-media img { height: 200px; }
     .tile-lg, .tile-wide { grid-column: span 2; }
     .tile-lg, .tile-tall { grid-row: span 1; }
 }
 @media (max-width: 560px) {
-    .pulse-bento { grid-template-columns: 1fr; grid-auto-rows: auto; }
-    .pulse-bento .pulse-tile-media img { height: 170px; }
+    .spotlight-bento { grid-template-columns: 1fr; grid-auto-rows: auto; }
+    .spotlight-bento .spotlight-tile-media img { height: 170px; }
     .tile-lg, .tile-wide, .tile-tall { grid-column: span 1; grid-row: span 1; }
-    .pulse-wall { column-count: 1; }
-    .pulse-post { flex-direction: column; }
-    .pulse-post-media { flex: none; }
-    .pulse-post-media img { height: 180px; }
-    .pulse-hero-title { font-size: 24px; }
+    .spotlight-wall { column-count: 1; }
+    .spotlight-post { flex-direction: column; }
+    .spotlight-post-media { flex: none; }
+    .spotlight-post-media img { height: 180px; }
+    .spotlight-hero-title { font-size: 24px; }
 }
 
 /* Tabellen-Zebra: dezenter, theme-abhängiger Streifen statt MudBlazor-Standard. */

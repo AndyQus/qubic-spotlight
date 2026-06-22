@@ -73,7 +73,7 @@ public class AdService
         }).ToList();
     }
 
-    // ── Pulse-/Feed-Seite ─────────────────────────────────────────────────────
+    // ── Spotlight-/Feed-Seite ──────────────────────────────────────────────────
     // Liste aller öffentlich sichtbaren Anzeigen für die Feed-Seite, sortiert und
     // optional nach Ecosystem gefiltert. voterKey (gehasht) markiert die eigene
     // Stimme je Anzeige. Kein Zufall, kein Pin – hier zählt Aktualität/Beliebtheit.

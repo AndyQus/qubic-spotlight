@@ -85,10 +85,9 @@
     // Gemeinsame Navigationslinks für Desktop-AppBar (Buttons) und mobiles
     // Burger-Menü (NavLinks, schließen den Drawer beim Klick).
     private RenderFragment NavLinks(bool mobile) =>@<text>
-        @Link("/", Icons.Material.Filled.Dashboard, L["nav.dashboard"], mobile, match: NavLinkMatch.All)
-        @Link("/pulse", Icons.Material.Filled.Bolt, L["nav.pulse"], mobile)
         <AuthorizeView>
             <Authorized>
+                @Link("/", Icons.Material.Filled.Bolt, L["nav.spotlight"], mobile, match: NavLinkMatch.All)
                 @Link("/admin", Icons.Material.Filled.Campaign, L["nav.ads"], mobile)
                 @Link("/admin/embed", Icons.Material.Filled.Code, L["nav.embed"], mobile)
                 <AuthorizeView Roles="Admin" Context="adminCtx">

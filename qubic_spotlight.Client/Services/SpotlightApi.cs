@@ -30,7 +30,7 @@ public class SpotlightApi
         catch { return new(); }
     }
 
-    // ── Pulse-/Feed-Seite ────────────────────────────────────────────────────
+    // ── Spotlight-/Feed-Seite ─────────────────────────────────────────────────
     public async Task<List<PublicAd>> GetFeedAsync(string sort, string? ecosystem, string? voterId)
     {
         var qs = $"api/feed?sort={Uri.EscapeDataString(sort)}";
