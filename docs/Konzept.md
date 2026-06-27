@@ -149,7 +149,7 @@ Drei logische Teile in **einer** Blazor-Web-App (ein Docker-Image), exakt wie
 │     /api/auth/login + /api/my/ads/* → eigene Ads per Token   │
 │     GET /swagger        → API-Doku & Test-UI                 │
 │     GET /spotlight.js   → schlankes Vanilla-JS-Widget        │
-│     GET /embed          → Iframe-Variante (Fallback)         │
+│     GET /embed          → öffentlicher Snippet-Generator      │
 │                                                              │
 │  LiteDB-Datei im Volume (DATA_DIR=/data)                     │
 │  Bild-Uploads → /data/uploads (Volume)                       │
@@ -291,9 +291,9 @@ schließbar).
 4. wechselt/scrollt die Anzeigen automatisch; jede ist als Link klickbar.
 
 Vorteile: keine Abhängigkeit zur Technik der Fremdseite, kein iframe-Zwang,
-DSGVO-arm (kein Tracking nötig). Als Fallback zusätzlich eine
-`/embed`-Iframe-Variante. Das fertige, vorkonfigurierte Snippet wird im
-Admin-Bereich zum Kopieren angezeigt (mit Live-Vorschau der Optionen).
+DSGVO-arm (kein Tracking nötig). Das fertige, vorkonfigurierte Snippet wird auf
+der öffentlichen Seite `/embed` zum Kopieren angezeigt (mit Live-Vorschau der
+Optionen).
 
 ## 8. API (REST + Swagger)
 

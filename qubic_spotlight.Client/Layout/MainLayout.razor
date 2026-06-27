@@ -89,7 +89,7 @@
             <Authorized>
                 @Link("/", Icons.Material.Filled.Bolt, L["nav.spotlight"], mobile, match: NavLinkMatch.All)
                 @Link("/admin", Icons.Material.Filled.Campaign, L["nav.ads"], mobile)
-                @Link("/admin/embed", Icons.Material.Filled.Code, L["nav.embed"], mobile)
+                @Link("/embed", Icons.Material.Filled.Code, L["nav.embed"], mobile)
                 <AuthorizeView Roles="Admin" Context="adminCtx">
                     @Link("/admin/users", Icons.Material.Filled.People, L["nav.users"], mobile)
                 </AuthorizeView>
@@ -104,6 +104,8 @@
                 }
             </Authorized>
             <NotAuthorized>
+                @Link("/", Icons.Material.Filled.Bolt, L["nav.spotlight"], mobile, match: NavLinkMatch.All)
+                @Link("/embed", Icons.Material.Filled.Code, L["nav.embed"], mobile)
                 @if (mobile)
                 {
                     <MudNavLink Href="/login" Icon="@Icons.Material.Filled.Login" OnClick="CloseDrawer">@L["nav.login"]</MudNavLink>
