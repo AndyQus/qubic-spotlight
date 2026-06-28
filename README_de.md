@@ -1,13 +1,17 @@
 # Qubic Spotlight
 
+![Qubic Spotlight Dashboard](docs/dashboard.png)
+
 Werbe- und Showcase-Plattform für das Qubic-Ökosystem. Zentral gepflegte Anzeigen
-erscheinen auf einem öffentlichen Dashboard (inkl. Qubic-Netzwerk-Kennzahlen) und
-lassen sich per kleinem Code-Snippet als Overlay-Banner in beliebige Webseiten
+erscheinen auf einer öffentlichen Spotlight-Seite (inkl. Qubic-Netzwerk-Kennzahlen)
+und lassen sich per kleinem Code-Snippet als Overlay-Banner in beliebige Webseiten
 einbinden.
 
 Stack: **.NET 10 Blazor Web App** (WebAssembly) · **MudBlazor** · **LiteDB** ·
 REST-API mit **Swagger** · JWT + API-Key. Aufgebaut nach dem Muster von
 `qubic_doge_stats`.
+
+> 🇬🇧 English version: [readme.md](readme.md)
 
 ## Auslöser — warum Qubic Spotlight?
 
@@ -22,7 +26,9 @@ Spotlight bündelt diese Neuigkeiten an einem Ort und macht sie überall sichtba
 1. **Widget für Fremd-Webseiten** (die ursprüngliche Idee): eine Code-Zeile bindet
    die Neuigkeiten des Ökosystems als Banner/Overlay auf beliebigen Seiten ein —
    alle machen mit, jeder profitiert.
-2. **Eigene öffentliche Seite**, die alle Neuigkeiten chronologisch zeigt.
+2. **Eigene öffentliche Spotlight-Seite**, die alle Neuigkeiten in mehreren Layouts
+   (Grid, Stream, Bento, Magazin, Wall, Slide) zeigt — mit Bewertung (👍/👎),
+   Sortierung (neu/top) und Filter nach Ecosystem-Gruppe.
 
 Teams und Produkt-Betreiber pflegen ihre Anzeigen selbst — **direkt im Portal oder
 über die API** aus ihren eigenen Anwendungen (anlegen, ändern, löschen).
@@ -33,7 +39,7 @@ Diese Webanwendung stelle ich dem Marketing-Team **kostenfrei** zur Verfügung.
 
 ```
 qubic_spotlight/            Server (ASP.NET Core, API, LiteDB, Auth, Worker)
-qubic_spotlight.Client/     Blazor WASM (Dashboard, Admin-UI)
+qubic_spotlight.Client/     Blazor WASM (Spotlight-Seite, Admin-UI)
 Shared/                     gemeinsame Models & DTOs
 docs/                       Konzept + Branding (Logo)
 Dockerfile, docker-compose.yaml
@@ -51,28 +57,71 @@ angelegt (Standard `admin@qubic.local` / `changeme`, über Umgebungsvariablen
 
 Swagger-UI: `http://localhost:5080/swagger`
 
-## Rollen
+## Adminbereich — Funktionsumfang & Rollen
 
-| Rolle | Rechte |
-|-------|--------|
-| `Admin` | alles + Benutzerverwaltung |
-| `Marketing` | alle Anzeigen pflegen/löschen |
-| `Ecosystem` | nur eigene Anzeigen (max. 5 aktive) |
+Der Login (oben rechts) führt in den geschützten Bereich. Welche Tabs und Aktionen
+sichtbar sind, hängt von der Rolle des Benutzers ab.
+
+### Rollen & Rechte
+
+| Rolle | Anzeigen | Limit aktive Anzeigen | Priorität / „Pin" | Statistik | Benutzerverwaltung |
+|-------|----------|-----------------------|-------------------|-----------|--------------------|
+| **Admin** | alle anlegen / ändern / löschen | **unbegrenzt** | ✅ | ✅ | ✅ (Benutzer & Rollen, API-Keys) |
+| **Marketing** | alle anlegen / ändern / löschen | **unbegrenzt** | ✅ | ✅ | ❌ |
+| **Ecosystem** | nur **eigene** anlegen / ändern / löschen | **max. 5 aktive** | ❌ | ❌ | ❌ |
+
+*Admin + Marketing zusammen bilden den „Manager" — dürfen alles ohne Limit.
+Ecosystem-Partner werden beim Anlegen automatisch fest auf ihre eigene
+Ecosystem-Gruppe gesetzt und sehen/bearbeiten nur ihre eigenen Anzeigen.*
+
+### Wie viele Anzeigen dürfen angelegt werden?
+
+- **Ecosystem:** maximal **5 gleichzeitig aktive** Anzeigen. Inaktive oder
+  abgelaufene Anzeigen zählen nicht mit. Beim Anlegen oder beim Aktivieren einer
+  6. aktiven Anzeige bricht der Vorgang mit einem Hinweis ab. Das Limit ist zentral
+  in `SpotlightLimits.MaxActiveAdsPerOwner` (Standard **5**) konfiguriert.
+- **Admin / Marketing:** kein Limit.
+
+### Tabs im Adminbereich
+
+- **Anzeigen** (alle Rollen): *Aktiv* · *Abgelaufen* · **Statistik**
+  (Klicks / Einblendungen / 👍👎 pro Zeitraum — nur Manager).
+- **Benutzer** (nur Admin): Benutzer anlegen / bearbeiten / löschen, Rollen &
+  Ecosystem-Gruppe zuweisen, API-Keys (neu) erzeugen.
+- **Embed** (alle Rollen): Snippet-Generator mit Live-Vorschau + Copy-Button.
+- **Account** (alle): eigenes Passwort ändern, eigenen API-Key (neu) erzeugen
+  (nur maskierte Vorschau, der volle Key wird einmalig bei der Erzeugung gezeigt).
+
+### Priorisierung („Pin", nur Admin/Marketing)
+
+Eine Anzeige kann für ein Zeitfenster als bevorzugt markiert werden; sie übernimmt
+dann ab Aktivierung für eine einstellbare Dauer (`PriorityMinutes`, Standard 30 Min.)
+global das Widget, danach rotieren die Anzeigen wieder normal.
 
 ## API (Auszug)
 
 Öffentlich:
 - `GET /api/ads` – aktive Anzeigen (fürs Widget/Dashboard)
-- `GET /api/qubic/stats` – Qubic-Netzwerk-Kennzahlen (gecacht)
+- `GET /api/feed` – sortierter Anzeigen-Feed (`sort=new|top`, optional `ecosystem`)
+- `GET /api/feed/ecosystems` – verfügbare Ecosystem-Gruppen (für den Feed-Filter)
+- `POST /api/ads/{id}/vote` – Anzeige bewerten (👍/👎)
 - `GET /api/ads/{id}/click` – zählt Klick + leitet weiter
 - `POST /api/ads/{id}/impression` – zählt Einblendung
+- `GET /api/qubic/stats` – Qubic-Netzwerk-Kennzahlen (gecacht)
+- `GET /api/qubic/blocks` – DOGE/LTC-Block-Kennzahlen des Mining-Pools (gecacht)
+- `GET /api/qubic/price-history` – Qubic-Kurs der letzten 24h (für den Chart)
 
 Authentifiziert (Header `Authorization: Bearer <jwt>` **oder** `X-Api-Key: <key>`):
+- `GET /api/my/me` – Profil des angemeldeten Benutzers
+- `POST /api/my/password` – eigenes Passwort ändern
 - `GET|POST /api/my/ads`, `PUT|DELETE /api/my/ads/{id}` – eigene Anzeigen
 - `POST /api/my/apikey` – eigenen API-Key (neu) erzeugen
+- `POST /api/uploads` – Bild hochladen (≤ 500 KB, PNG/JPG/SVG/WebP)
 - `POST /api/auth/login` – Login → JWT
 
-Verwaltung: `/api/admin/ads` (Admin+Marketing), `/api/admin/users` (Admin).
+Verwaltung:
+- `/api/admin/ads` (Admin + Marketing) – alle Anzeigen + `GET /api/admin/ads/stats`
+- `/api/admin/users` (nur Admin) – Benutzerverwaltung + API-Keys
 
 ## Einbinden auf Fremd-Webseiten
 
@@ -169,6 +218,10 @@ in den Container.
 ## Hinweise
 
 - Tracking ist DSGVO-arm: nur gehashte IP, kein Klartext, kein externes Tracking.
+  Bewertungen (👍/👎) nutzen eine anonyme, im Browser erzeugte Kennung (kein Login nötig).
+- API-Keys werden **nicht im Klartext** gespeichert (nur SHA-256-Hash + letzte 4 Zeichen
+  für die maskierte Vorschau). Der volle Key wird ausschließlich einmalig bei der
+  Erzeugung zurückgegeben.
 - Freigabe-Workflow (`Status`) ist im Modell vorbereitet, in v1 aber inaktiv
   (alle Anzeigen sofort sichtbar).
 - Paketversionen (MudBlazor 9.2.0, LiteDB 5.0.21, JwtBearer/WASM 10.0.5,
