@@ -16,6 +16,16 @@
   // Basis-URL = Herkunft des Scripts (funktioniert damit auf jeder Fremdseite).
   var base = new URL(script.src).origin;
 
+  // Auf der eigenen Spotlight-Seite kann der Besucher das Panel über einen
+  // Schalter in der Navigation an-/ausschalten. Der Zustand liegt im
+  // localStorage (Standard: aktiv); ein CustomEvent hält Schalter und Widget
+  // live synchron. Auf Fremdseiten ist der Schlüssel nie gesetzt → immer aktiv.
+  var PANEL_KEY = "qspot_panel";
+  var PANEL_EVENT = "qspot-panel-toggle";
+  function panelEnabled() {
+    try { return localStorage.getItem(PANEL_KEY) !== "false"; } catch (e) { return true; }
+  }
+
   var d = script.dataset;
   var cfg = {
     mode: d.mode || "slide-panel",          // slide-panel | edge-marquee | corner-card
@@ -135,7 +145,13 @@
       if (cfg.closable) {
         var x = document.createElement("button");
         x.className = "close"; x.textContent = "×";
-        x.onclick = function () { wrap.remove(); };
+        x.onclick = function () {
+          wrap.remove();
+          // Schließen merkt sich die Entscheidung und meldet sie dem Schalter
+          // in der Navigation (auf der eigenen Seite; auf Fremdseiten ohne Wirkung).
+          try { localStorage.setItem(PANEL_KEY, "false"); } catch (e) { /* egal */ }
+          window.dispatchEvent(new CustomEvent(PANEL_EVENT, { detail: { enabled: false, source: "widget" } }));
+        };
         card.appendChild(x);
       }
 
@@ -243,6 +259,7 @@
   }
 
   function render(ads) {
+    if (!panelEnabled()) { removeWidget(); return; }  // per Schalter deaktiviert
     var sig = signature(ads);
     if (sig === lastSig) return;     // nichts geändert → laufende Anzeige nicht stören
     lastSig = sig;
@@ -264,12 +281,23 @@
     }
   }
 
+  function removeWidget() {
+    if (currentHost) { currentHost.remove(); currentHost = null; }
+    lastSig = null;  // beim Wieder-Aktivieren neu rendern erzwingen
+  }
+
   function load() {
+    if (!panelEnabled()) { removeWidget(); return; }  // per Schalter deaktiviert
     fetch(base + "/api/ads")
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(render)
       .catch(function () { /* Fremdseite nicht stören */ });
   }
+
+  // Schalter in der Navigation umgelegt: sofort an-/ausschalten ohne Reload.
+  window.addEventListener(PANEL_EVENT, function () {
+    if (panelEnabled()) load(); else removeWidget();
+  });
 
   load();
   // Sicherheits-Poll: fängt neu aktivierte Pins / abgelaufene Fenster ab.

@@ -21,6 +21,7 @@ public static class Translations
         ["nav.login"] = "Login",
         ["nav.logout"] = "Logout",
         ["header.theme"] = "Toggle light/dark",
+        ["header.panel"] = "Show/hide spotlight panel",
 
         // Account / profile
         ["account.title"] = "My account",
@@ -211,6 +212,7 @@ public static class Translations
         ["nav.login"] = "Login",
         ["nav.logout"] = "Logout",
         ["header.theme"] = "Hell/Dunkel umschalten",
+        ["header.panel"] = "Spotlight-Panel ein-/ausblenden",
 
         // Konto / Profil
         ["account.title"] = "Mein Konto",

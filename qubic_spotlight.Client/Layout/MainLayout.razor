@@ -24,6 +24,11 @@
 
             <MudDivider Vertical="true" FlexItem="true" Class="mx-2" />
 
+            <!-- Spotlight-Panel ein-/ausblenden -->
+            <MudIconButton Icon="@Icons.Material.Filled.Slideshow"
+                           Color="@(_panelEnabled ? Color.Primary : Color.Inherit)"
+                           Title='@L["header.panel"]' OnClick="TogglePanelAsync" />
+
             <!-- Sprachumschalter -->
             <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
                 <MudButton Color="@(L.Lang == "en" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("en"))'>EN</MudButton>
@@ -52,6 +57,12 @@
 
             <MudDivider Class="my-2" />
 
+            <MudNavLink Icon="@Icons.Material.Filled.Slideshow"
+                        IconColor="@(_panelEnabled ? Color.Primary : Color.Default)"
+                        OnClick="TogglePanelAsync">@L["header.panel"]</MudNavLink>
+
+            <MudDivider Class="my-2" />
+
             <div class="d-flex align-center px-2">
                 <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
                     <MudButton Color="@(L.Lang == "en" ? Color.Primary : Color.Inherit)" OnClick='@(() => SetLangAsync("en"))'>EN</MudButton>
@@ -77,7 +88,9 @@
 @code {
     private bool _isDarkMode = true;
     private bool _drawerOpen;
+    private bool _panelEnabled = true;
     private const string DarkKey = "qspot_dark";
+    private DotNetObjectReference<MainLayout>? _selfRef;
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
     private void CloseDrawer() => _drawerOpen = false;
@@ -171,7 +184,30 @@
         await L.InitAsync();
         var dark = await JS.InvokeAsync<string?>("localStorage.getItem", DarkKey);
         if (dark is "false") _isDarkMode = false;
+
+        // Panel-Schalter: gemerkten Zustand laden (Standard aktiv) und einen
+        // Callback registrieren, damit der Schließen-Button im Panel den
+        // Schalter ebenfalls deaktiviert.
+        _panelEnabled = await JS.InvokeAsync<bool>("qspotPanel.enabled");
+        _selfRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("qspotPanel.register", _selfRef);
+
         StateHasChanged();
+    }
+
+    private async Task TogglePanelAsync()
+    {
+        _panelEnabled = !_panelEnabled;
+        await JS.InvokeVoidAsync("qspotPanel.set", _panelEnabled);
+    }
+
+    // Vom Widget aufgerufen, wenn das Panel über den Schließen-Button beendet wird.
+    [JSInvokable]
+    public void OnPanelToggled(bool enabled)
+    {
+        if (_panelEnabled == enabled) return;
+        _panelEnabled = enabled;
+        InvokeAsync(StateHasChanged);
     }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
@@ -191,5 +227,10 @@
         Nav.NavigateTo("/");
     }
 
-    public void Dispose() => L.Changed -= OnChanged;
+    public void Dispose()
+    {
+        L.Changed -= OnChanged;
+        _ = JS.InvokeVoidAsync("qspotPanel.unregister");
+        _selfRef?.Dispose();
+    }
 }
