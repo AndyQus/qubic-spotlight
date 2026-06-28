@@ -51,14 +51,12 @@ public class LiteDbContext : IDisposable
 
     // ── Ads ──────────────────────────────────────────────────────────────────
 
-    // Verwaltungslisten: neueste zuerst (Startdatum absteigend), bei gleichem
-    // Datum greift die manuelle Reihenfolge (SortOrder) als Tie-Breaker.
+    // Verwaltungslisten: neueste zuerst (Startdatum absteigend).
     public List<Ad> GetAllAds()
     {
         lock (_lock)
             return _db.GetCollection<Ad>("ads").FindAll()
                 .OrderByDescending(x => x.StartDate)
-                .ThenBy(x => x.SortOrder)
                 .ToList();
     }
 
@@ -68,7 +66,6 @@ public class LiteDbContext : IDisposable
             return _db.GetCollection<Ad>("ads")
                 .Find(x => x.OwnerUserId == ownerUserId)
                 .OrderByDescending(x => x.StartDate)
-                .ThenBy(x => x.SortOrder)
                 .ToList();
     }
 
@@ -84,7 +81,6 @@ public class LiteDbContext : IDisposable
                         && x.Status == AdStatus.Approved
                         && x.StartDate.Date <= today
                         && (x.ExpiryDate == null || x.ExpiryDate.Value.Date >= today))
-                .OrderBy(x => x.SortOrder)
                 .ToList();
     }
 
@@ -308,6 +304,31 @@ public class LiteDbContext : IDisposable
             }
             return result;
         }
+    }
+
+    // ── Kurs-Historie (24h-Chart) ─────────────────────────────────────────────
+
+    // Hängt einen Kurspunkt an und verwirft alles, was älter als 24h ist.
+    public void AddPricePoint(double price)
+    {
+        lock (_lock)
+        {
+            var col = _db.GetCollection<PricePoint>("price_history");
+            col.Insert(new PricePoint { Timestamp = DateTime.UtcNow, Price = price });
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+            col.DeleteMany(p => p.Timestamp < cutoff);
+        }
+    }
+
+    // Die letzten 24h, älteste zuerst (für den Chart).
+    public List<PricePoint> GetPriceHistory()
+    {
+        var cutoff = DateTime.UtcNow.AddHours(-24);
+        lock (_lock)
+            return _db.GetCollection<PricePoint>("price_history")
+                .Find(p => p.Timestamp >= cutoff)
+                .OrderBy(p => p.Timestamp)
+                .ToList();
     }
 
     public void Dispose() => _db.Dispose();

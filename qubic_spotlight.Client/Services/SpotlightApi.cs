@@ -24,6 +24,18 @@ public class SpotlightApi
         catch { return null; }
     }
 
+    public async Task<QubicBlockStats?> GetBlockStatsAsync()
+    {
+        try { return await _http.GetFromJsonAsync<QubicBlockStats>("api/qubic/blocks"); }
+        catch { return null; }
+    }
+
+    public async Task<List<PricePoint>> GetPriceHistoryAsync()
+    {
+        try { return await _http.GetFromJsonAsync<List<PricePoint>>("api/qubic/price-history") ?? new(); }
+        catch { return new(); }
+    }
+
     public async Task<List<PublicAd>> GetPublicAdsAsync()
     {
         try { return await _http.GetFromJsonAsync<List<PublicAd>>("api/ads") ?? new(); }

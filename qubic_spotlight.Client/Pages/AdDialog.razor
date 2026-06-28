@@ -37,10 +37,7 @@
                           Variant="Variant.Outlined" Class="mb-3" />
         }
 
-        <div class="d-flex gap-3 align-center">
-            <MudNumericField @bind-Value="_input.SortOrder" Label='@L["addlg.order"]' Variant="Variant.Outlined" Style="width:140px;" />
-            <MudSwitch @bind-Value="_input.IsActive" Color="Color.Primary" Label='@L["addlg.active"]' />
-        </div>
+        <MudSwitch @bind-Value="_input.IsActive" Color="Color.Primary" Label='@L["addlg.active"]' />
 
         @* ── Priorisierung / "Pin" – nur Admin + Marketing ───────────────────── *@
         @if (Manager)
@@ -104,7 +101,6 @@
                 ExpiryDate = Ad.ExpiryDate,
                 IsActive = Ad.IsActive,
                 Ecosystem = Ad.Ecosystem,
-                SortOrder = Ad.SortOrder,
                 Priority = Ad.Priority,
                 PriorityMinutes = Ad.PriorityMinutes,
                 PriorityStart = Ad.PriorityStart,

@@ -44,7 +44,6 @@ public class Ad
     public bool IsActive { get; set; } = true;
     public string? Ecosystem { get; set; }
     public string OwnerUserId { get; set; } = "";
-    public int SortOrder { get; set; }
     public AdStatus Status { get; set; } = AdStatus.Approved;
 
     // ── Priorisierung / "Pin" (nur Admin + Marketing) ────────────────────────
@@ -112,7 +111,6 @@ public class AdInput
     public DateTime? ExpiryDate { get; set; }
     public bool IsActive { get; set; } = true;
     public string? Ecosystem { get; set; }
-    public int SortOrder { get; set; }
 
     // Priorisierung / "Pin" – nur von Admin/Marketing setzbar (siehe Ad).
     public bool Priority { get; set; }
@@ -139,6 +137,7 @@ public class PublicAd
     // ── Felder für die Spotlight-/Feed-Seite ─────────────────────────────────
     // Vom /api/feed-Endpunkt befüllt (beim Widget/Dashboard bleiben sie 0/null).
     public DateTime CreatedAt { get; set; }
+    public long ClickCount { get; set; }
     public long LikeCount { get; set; }
     public long DislikeCount { get; set; }
     // Stimme des aktuellen Besuchers: 1 = 👍, -1 = 👎, 0 = keine.
@@ -245,4 +244,24 @@ public class QubicStats
     public double EpochTickQuality { get; set; }
     public string BurnedQus { get; set; } = "0";
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// Block-Kennzahlen des Qubic-Mining-Pools (aus doge.qubic.tools/api/blocks/summary).
+// Großer Wert = Total bestätigt, Klammerwert = bestätigt in der aktuellen Epoche.
+public class QubicBlockStats
+{
+    public int CurrentEpoch { get; set; }
+    public int DogeTotalConfirmed { get; set; }
+    public int DogeCurrentEpochConfirmed { get; set; }
+    public int LtcTotalConfirmed { get; set; }
+    public int LtcCurrentEpochConfirmed { get; set; }
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// Ein Kurspunkt für den 24h-Chart. Der Server schreibt im Stats-Takt (60s)
+// einen Punkt; alles älter als 24h wird verworfen.
+public class PricePoint
+{
+    public DateTime Timestamp { get; set; }
+    public double Price { get; set; }
 }

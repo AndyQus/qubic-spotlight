@@ -54,6 +54,27 @@ a {
     margin-top: 3px;
 }
 
+/* Klammerwert (aktuelle Epoche) in der Farbe der Kachel-Überschrift. */
+.qs-stat .value .qs-stat-epoch {
+    color: var(--mud-palette-secondary, #4EE0FC);
+}
+
+/* 24h-Kurschart (Sparkline) füllt den Wertbereich der Kachel. */
+.qs-stat .value .qs-spark {
+    display: block;
+    width: 100%;
+    height: 18px;
+}
+
+/* 24h-Veränderung in % unter der Sparkline. */
+.qs-stat .value .qs-spark-change {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    margin-top: 1px;
+}
+
 @media (max-width: 1100px) {
     .qs-stats {
         grid-template-columns: repeat(4, 1fr);
@@ -109,11 +130,18 @@ a {
     flex-direction: column;
 }
 
-.qs-ad-body h3 {
+.qs-ad-body h3,
+.qs-ad-title {
+    display: block;
     margin: 0 0 6px;
     font-size: 16px;
     color: var(--mud-palette-text-primary, #f2f5fa);
     font-weight: 500;
+    text-decoration: none;
+}
+
+.qs-ad-title:hover {
+    color: var(--mud-palette-secondary, #4EE0FC);
 }
 
 .qs-ad-body p {
@@ -231,6 +259,25 @@ a {
     color: var(--mud-palette-text-secondary, #b9c2cf);
 }
 
+/* In der Vote-Leiste steht das Datum rechts (ersetzt den früheren Öffnen-Link). */
+.spotlight-votes .spotlight-time {
+    margin-left: auto;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+/* Klickbare Karten/Kacheln: ganze Fläche öffnet den Artikel. */
+.spotlight-clickable {
+    cursor: pointer;
+}
+
+.spotlight-clickable:hover .spotlight-post-title,
+.spotlight-clickable:hover .spotlight-tile-title,
+.spotlight-clickable:hover .spotlight-hero-title,
+.spotlight-clickable:hover .qs-ad-title {
+    color: var(--mud-palette-secondary, #4EE0FC);
+}
+
 .spotlight-post-title,
 .spotlight-tile-title,
 .spotlight-hero-title {
@@ -295,6 +342,19 @@ a {
     font-variant-numeric: tabular-nums;
 }
 
+/* Klick-Zähler (👁) – reine Anzeige, kein Button. */
+.spotlight-clicks {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--mud-palette-text-secondary, #b9c2cf);
+}
+
+.spotlight-clicks .cnt {
+    font-variant-numeric: tabular-nums;
+}
+
 .spotlight-vote.up.on {
     color: #22c55e;
     border-color: #22c55e;
@@ -305,14 +365,6 @@ a {
     color: #ef4444;
     border-color: #ef4444;
     background: rgba(239, 68, 68, .12);
-}
-
-.spotlight-open {
-    margin-left: auto;
-    white-space: nowrap;
-    font-size: 13px;
-    text-decoration: none;
-    color: var(--mud-palette-secondary, #4EE0FC);
 }
 
 /* Tab A — Stream ----------------------------------------------------------- */

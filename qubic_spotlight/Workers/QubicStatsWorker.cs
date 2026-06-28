@@ -1,3 +1,4 @@
+using qubic_spotlight.Infrastructure;
 using qubic_spotlight.Services;
 using qubic_spotlight.Shared.Models;
 
@@ -28,7 +29,16 @@ public class QubicStatsWorker : BackgroundService
                 using var scope = _services.CreateScope();
                 var client = scope.ServiceProvider.GetRequiredService<QubicStatsClient>();
                 var stats = await client.GetLatestStatsAsync(stoppingToken);
-                if (stats is not null) Latest = stats;
+                if (stats is not null)
+                {
+                    Latest = stats;
+                    // Kurspunkt für den 24h-Chart festhalten (gleicher Takt, kein Extra-Call).
+                    if (stats.Price > 0)
+                    {
+                        var db = scope.ServiceProvider.GetRequiredService<LiteDbContext>();
+                        db.AddPricePoint(stats.Price);
+                    }
+                }
             }
             catch (Exception ex)
             {

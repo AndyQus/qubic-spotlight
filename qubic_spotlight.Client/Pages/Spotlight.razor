@@ -6,7 +6,7 @@
 @inject IJSRuntime JS
 
 <PageTitle>Qubic Spotlight — @L["spotlight.title"]</PageTitle>
-<script src="http://localhost:5080/spotlight.js"
+<script src="/spotlight.js"
 
         data-mode="slide-panel"
         data-position="right"
@@ -64,20 +64,23 @@
             <div class="qs-ads">
                 @foreach (var ad in _ads)
                 {
-                    <a href="@ClickUrl(ad)" target="_blank" rel="noopener" class="qs-ad-card" style="text-decoration:none;">
+                    <div class="qs-ad-card spotlight-clickable" @onclick="() => OpenAd(ad)">
                         @if (!string.IsNullOrEmpty(ad.ImageUrl))
                         {
-                            <img src="@ad.ImageUrl" alt="" onerror="this.remove()" />
+                            <div class="qs-ad-media">
+                                <img src="@ad.ImageUrl" alt="" onerror="this.closest('.qs-ad-media').remove()" />
+                            </div>
                         }
                         <div class="qs-ad-body">
-                            <h3>@ad.Title</h3>
+                            <span class="qs-ad-title">@ad.Title</span>
                             <p>@ad.Description</p>
                             @if (!string.IsNullOrEmpty(ad.Ecosystem))
                             {
                                 <span class="qs-ad-eco">@ad.Ecosystem</span>
                             }
+                            @Votes(ad)
                         </div>
-                    </a>
+                    </div>
                 }
             </div>
         }
@@ -101,7 +104,7 @@
                 @for (var i = 0; i < _ads.Count; i++)
                 {
                     var ad = _ads[i];
-                    <div class="spotlight-tile @BentoClass(i)">@TileInner(ad)</div>
+                    <div class="spotlight-tile spotlight-clickable @BentoClass(i)" @onclick="() => OpenAd(ad)">@TileInner(ad)</div>
                 }
             </div>
         }
@@ -113,13 +116,13 @@
         {
             var hero = _ads[0];
             <div class="spotlight-mag">
-                <div class="spotlight-mag-hero">@HeroInner(hero)</div>
+                <div class="spotlight-mag-hero spotlight-clickable" @onclick="() => OpenAd(hero)">@HeroInner(hero)</div>
                 @if (_ads.Count > 1)
                 {
                     <div class="spotlight-mag-rest">
                         @foreach (var ad in _ads.Skip(1))
                         {
-                            <div class="spotlight-tile">@TileInner(ad)</div>
+                            <div class="spotlight-tile spotlight-clickable" @onclick="() => OpenAd(ad)">@TileInner(ad)</div>
                         }
                     </div>
                 }
@@ -134,7 +137,7 @@
             <div class="spotlight-wall">
                 @foreach (var ad in _ads)
                 {
-                    <div class="spotlight-wall-item">@TileInner(ad)</div>
+                    <div class="spotlight-wall-item spotlight-clickable" @onclick="() => OpenAd(ad)">@TileInner(ad)</div>
                 }
             </div>
         }
@@ -148,21 +151,25 @@
                          ShowArrows="true" ShowBullets="true" AutoCycle="true"
                          AutoCycleTime="TimeSpan.FromSeconds(5)" TData="PublicAd" ItemsSource="_ads">
                 <ItemTemplate Context="ad">
-                    <a href="@ClickUrl(ad)" target="_blank" rel="noopener"
-                       style="display:flex; height:100%; text-decoration:none; background:var(--mud-palette-surface);">
+                    <div class="spotlight-clickable" @onclick="() => OpenAd(ad)"
+                         style="display:flex; height:100%; background:var(--mud-palette-surface);">
                         @if (!string.IsNullOrEmpty(ad.ImageUrl))
                         {
-                            <img src="@ad.ImageUrl" alt="" style="width:300px; object-fit:cover;" onerror="this.remove()" />
+                            <div class="spotlight-slide-media" style="flex:0 0 300px;">
+                                <img src="@ad.ImageUrl" alt="" style="width:300px; height:100%; object-fit:cover;"
+                                     onerror="this.closest('.spotlight-slide-media').remove()" />
+                            </div>
                         }
-                        <div style="padding:24px; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="padding:24px; display:flex; flex-direction:column; justify-content:center; min-width:0;">
                             <h2 style="margin:0 0 8px; color:var(--mud-palette-text-primary); font-weight:500;">@ad.Title</h2>
                             <p style="margin:0; color:var(--mud-palette-text-secondary); max-width:560px;">@ad.Description</p>
                             @if (!string.IsNullOrEmpty(ad.Ecosystem))
                             {
                                 <span class="qs-ad-eco">@ad.Ecosystem</span>
                             }
+                            @Votes(ad)
                         </div>
-                    </a>
+                    </div>
                 </ItemTemplate>
             </MudCarousel>
         }
@@ -180,6 +187,8 @@
     private const string VoterKey = "qspot_voter";
 
     private QubicStats? _stats;
+    private QubicBlockStats? _blocks;
+    private List<PricePoint> _priceHistory = new();
     private List<PublicAd> _ads = new();
     private List<string> _ecosystems = new();
     private int _tab;
@@ -187,6 +196,11 @@
     private string? _eco;
     private string? _voterId;
     private bool _loaded;
+
+    // Hält die Kacheln (Price, Chart, Blocks) live: holt im Server-Takt (60s)
+    // die gecachten Werte nach. Beim Verlassen der Seite gestoppt (Dispose).
+    private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(60);
+    private PeriodicTimer? _refreshTimer;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -208,11 +222,42 @@
             await SetItem(VoterKey, _voterId);
         }
 
-        _stats = await Api.GetStatsAsync();
+        await RefreshStatsAsync();
         _ecosystems = await Api.GetFeedEcosystemsAsync();
         await LoadFeedAsync();
         _loaded = true;
         StateHasChanged();
+
+        // Ab jetzt im Server-Takt (60s) nachladen, ohne Seiten-Reload.
+        _ = RunRefreshLoopAsync();
+    }
+
+    // Holt die gecachten Live-Werte (Price, Chart, Blocks) vom Server.
+    private async Task RefreshStatsAsync()
+    {
+        _stats = await Api.GetStatsAsync();
+        _blocks = await Api.GetBlockStatsAsync();
+        _priceHistory = await Api.GetPriceHistoryAsync();
+    }
+
+    private async Task RunRefreshLoopAsync()
+    {
+        _refreshTimer = new PeriodicTimer(RefreshInterval);
+        try
+        {
+            while (await _refreshTimer.WaitForNextTickAsync())
+            {
+                await RefreshStatsAsync();
+                StateHasChanged();
+            }
+        }
+        catch (OperationCanceledException) { /* Seite verlassen */ }
+    }
+
+    public override void Dispose()
+    {
+        _refreshTimer?.Dispose();
+        base.Dispose();
     }
 
     private async Task LoadFeedAsync()
@@ -258,6 +303,12 @@
 
     private static string ClickUrl(PublicAd ad) => $"/api/ads/{ad.Id}/click";
 
+    // Öffnet den Artikel in einem neuen Tab (zählt serverseitig den Klick).
+    // Wird beim Klick auf eine Anzeige-Karte ausgelöst; Vote-Buttons stoppen
+    // die Weiterleitung per stopPropagation.
+    private ValueTask OpenAd(PublicAd ad)
+        => JS.InvokeVoidAsync("open", ClickUrl(ad), "_blank", "noopener");
+
     private static string BentoClass(int i)
         => i == 0 ? "tile-lg" : (i % 6 == 0 ? "tile-wide" : (i % 8 == 5 ? "tile-tall" : ""));
 
@@ -272,66 +323,126 @@
         return L.T("spotlight.daysAgo", (int)(hrs / 24));
     }
 
-    private IEnumerable<(string, string)> StatTiles()
+    private IEnumerable<(string, RenderFragment)> StatTiles()
     {
         var s = _stats!;
-        yield return (L["stat.price"], Format.Price(s.Price));
-        yield return (L["stat.marketcap"], Format.Money(s.MarketCap));
-        yield return (L["stat.supply"], Format.Compact(s.CirculatingSupply));
-        yield return (L["stat.addresses"], Format.Compact(s.ActiveAddresses));
-        yield return (L["stat.epoch"], s.Epoch.ToString());
-        yield return (L["stat.tick"], Format.Compact(s.CurrentTick));
-        yield return (L["stat.quality"], s.EpochTickQuality.ToString("0.0") + "%");
-        yield return (L["stat.burned"], Format.Compact(s.BurnedQus));
+        yield return (L["stat.price"], Text(Format.Price(s.Price)));
+        yield return (L["stat.marketcap"], Text(Format.Money(s.MarketCap)));
+        // Supply für später aufgehoben — Platz nutzt jetzt der 24h-Kurschart.
+        // yield return (L["stat.supply"], Text(Format.Compact(s.CirculatingSupply)));
+        yield return (L["stat.priceChart"], PriceChart());
+        yield return (L["stat.epoch"], Text(s.Epoch.ToString()));
+        yield return (L["stat.quality"], Text(s.EpochTickQuality.ToString("0.0") + "%"));
+        yield return (L["stat.burned"], Text(Format.Compact(s.BurnedQus)));
+        yield return (L["stat.dogeBlocks"], Blocks(b => b.DogeTotalConfirmed, b => b.DogeCurrentEpochConfirmed));
+        yield return (L["stat.ltcBlocks"], Blocks(b => b.LtcTotalConfirmed, b => b.LtcCurrentEpochConfirmed));
+    }
+
+    private static RenderFragment Text(string value) =>@<text>@value</text>;
+
+    // Block-Kachelwert: "Total (aktuelle Epoche)", z. B. "321 (18)".
+    // Der Klammerwert übernimmt die Farbe der Kachel-Überschrift.
+    // Solange die Pool-Daten fehlen, "–" anzeigen.
+    private RenderFragment Blocks(Func<QubicBlockStats, int> total, Func<QubicBlockStats, int> epoch)
+    {
+        if (_blocks is null) return Text("–");
+        var t = Format.Number(total(_blocks));
+        var e = epoch(_blocks);
+        if (e <= 0) return Text(t);
+        return @<text>@t <span class="qs-stat-epoch">(@Format.Number(e))</span></text>;
+    }
+
+    // 24h-Kurschart als kompaktes Inline-SVG (Sparkline). Bewusst klein —
+    // grün wenn der Kurs über 24h gestiegen ist, sonst rot. Der Klammerwert
+    // (Farbe der Überschrift) zeigt die 24h-Veränderung in %, der Tooltip
+    // zusätzlich Min/Max.
+    private RenderFragment PriceChart()
+    {
+        var pts = _priceHistory;
+        if (pts.Count < 2) return Text("–");
+
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        const double w = 120, h = 28, pad = 2;
+        double min = pts.Min(p => p.Price), max = pts.Max(p => p.Price);
+        double range = max - min;
+        if (range <= 0) range = Math.Abs(max) > 0 ? Math.Abs(max) : 1;
+
+        double X(int i) => pad + (w - 2 * pad) * i / (pts.Count - 1);
+        double Y(double v) => pad + (h - 2 * pad) * (1 - (v - min) / range);
+
+        var coords = string.Join(" ",
+            pts.Select((p, i) => $"{X(i).ToString("0.#", inv)},{Y(p.Price).ToString("0.#", inv)}"));
+
+        double first = pts[0].Price, last = pts[^1].Price;
+        var up = last >= first;
+        var stroke = up ? "#22c55e" : "#ef4444";
+        var changePct = first > 0 ? (last - first) / first * 100 : 0;
+        var changeLabel = (changePct >= 0 ? "+" : "") + changePct.ToString("0.0", inv) + "%";
+        var tip = $"{L["stat.priceChart"]}: {changeLabel}  ·  ↑ {Format.Price(max)}  ↓ {Format.Price(min)}";
+
+        return @<text>
+            <svg class="qs-spark" viewBox="0 0 120 28" preserveAspectRatio="none" role="img"
+                 aria-label="@tip">
+                <title>@tip</title>
+                <polyline points="@coords" fill="none" stroke="@stroke" stroke-width="1.5"
+                          stroke-linejoin="round" stroke-linecap="round" />
+            </svg>
+            <span class="qs-spark-change" style="color:@stroke;" title="@tip">@changeLabel</span>
+        </text>;
     }
 
     // ── Wiederverwendbare Bausteine ───────────────────────────────────────────
     private RenderFragment Empty =>@<MudText Class="pa-8" Style="color:var(--mud-palette-text-secondary);">@L["spotlight.noAds"]</MudText>;
 
     private RenderFragment Meta(PublicAd ad) =>@<text>
-        <div class="spotlight-meta">
-            @if (!string.IsNullOrEmpty(ad.Ecosystem)) { <span class="qs-ad-eco">@ad.Ecosystem</span> }
-            <span class="spotlight-time">@Ago(ad.CreatedAt)</span>
-        </div>
+        @if (!string.IsNullOrEmpty(ad.Ecosystem))
+        {
+            <div class="spotlight-meta">
+                <span class="qs-ad-eco">@ad.Ecosystem</span>
+            </div>
+        }
     </text>;
 
+    // Vote-Leiste. Klicks auf 👍/👎 dürfen die Karte nicht öffnen → stopPropagation.
+    // Das Artikeldatum steht rechts (statt des früheren "Öffnen"-Links).
     private RenderFragment Votes(PublicAd ad) =>@<text>
-        <div class="spotlight-votes">
+        <div class="spotlight-votes" @onclick:stopPropagation="true">
             <button class="spotlight-vote up @(ad.MyVote == 1 ? "on" : "")" title="@L["spotlight.like"]"
                     @onclick="() => VoteAsync(ad, 1)">👍 <span class="cnt">@ad.LikeCount</span></button>
             <button class="spotlight-vote down @(ad.MyVote == -1 ? "on" : "")" title="@L["spotlight.dislike"]"
                     @onclick="() => VoteAsync(ad, -1)">👎 <span class="cnt">@ad.DislikeCount</span></button>
-            <a class="spotlight-open" href="@ClickUrl(ad)" target="_blank" rel="noopener">@L["spotlight.open"] ↗</a>
+            <span class="spotlight-clicks" title="@L["spotlight.clicks"]">👁 <span class="cnt">@ad.ClickCount</span></span>
+            <span class="spotlight-time">@Ago(ad.CreatedAt)</span>
         </div>
     </text>;
 
-    // Breite Karte für den Stream.
-    private RenderFragment StreamPost(PublicAd ad) =>@<div class="spotlight-post">
+    // Breite Karte für den Stream. Ganze Karte klickbar → öffnet den Artikel.
+    private RenderFragment StreamPost(PublicAd ad) =>@<div class="spotlight-post spotlight-clickable" @onclick="() => OpenAd(ad)">
         @if (!string.IsNullOrEmpty(ad.ImageUrl))
         {
-            <a class="spotlight-post-media" href="@ClickUrl(ad)" target="_blank" rel="noopener">
+            <div class="spotlight-post-media">
                 <img src="@ad.ImageUrl" alt="" onerror="this.closest('.spotlight-post-media').remove()" />
-            </a>
+            </div>
         }
         <div class="spotlight-post-body">
             @Meta(ad)
-            <a class="spotlight-post-title" href="@ClickUrl(ad)" target="_blank" rel="noopener">@ad.Title</a>
+            <span class="spotlight-post-title">@ad.Title</span>
             <p class="spotlight-post-text">@ad.Description</p>
             @Votes(ad)
         </div>
     </div>;
 
-    // Kompakte Kachel für Bento / Wand / Magazin-Rest.
+    // Kompakte Kachel für Bento / Wand / Magazin-Rest. Ganze Kachel klickbar.
     private RenderFragment TileInner(PublicAd ad) =>@<text>
         @if (!string.IsNullOrEmpty(ad.ImageUrl))
         {
-            <a class="spotlight-tile-media" href="@ClickUrl(ad)" target="_blank" rel="noopener">
+            <div class="spotlight-tile-media">
                 <img src="@ad.ImageUrl" alt="" onerror="this.closest('.spotlight-tile-media').remove()" />
-            </a>
+            </div>
         }
         <div class="spotlight-tile-body">
             @Meta(ad)
-            <a class="spotlight-tile-title" href="@ClickUrl(ad)" target="_blank" rel="noopener">@ad.Title</a>
+            <span class="spotlight-tile-title">@ad.Title</span>
             <p class="spotlight-tile-text">@ad.Description</p>
             @Votes(ad)
         </div>
@@ -341,14 +452,14 @@
     private RenderFragment HeroInner(PublicAd ad) =>@<text>
         @if (!string.IsNullOrEmpty(ad.ImageUrl))
         {
-            <a class="spotlight-hero-media" href="@ClickUrl(ad)" target="_blank" rel="noopener">
+            <div class="spotlight-hero-media">
                 <img src="@ad.ImageUrl" alt="" onerror="this.closest('.spotlight-hero-media').remove()" />
-            </a>
+            </div>
         }
         <div class="spotlight-hero-body">
             <span class="spotlight-badge">@L["spotlight.featured"]</span>
             @Meta(ad)
-            <a class="spotlight-hero-title" href="@ClickUrl(ad)" target="_blank" rel="noopener">@ad.Title</a>
+            <span class="spotlight-hero-title">@ad.Title</span>
             <p class="spotlight-hero-text">@ad.Description</p>
             @Votes(ad)
         </div>

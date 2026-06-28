@@ -103,6 +103,7 @@ public class AdService
             ImageUrl = a.ImageUrl,
             Ecosystem = a.Ecosystem,
             CreatedAt = a.CreatedAt,
+            ClickCount = a.ClickCount,
             LikeCount = a.LikeCount,
             DislikeCount = a.DislikeCount,
             MyVote = votes.TryGetValue(a.Id, out var v) ? v : 0
@@ -212,7 +213,6 @@ public class AdService
         ad.ExpiryDate = input.ExpiryDate?.Date;
         ad.IsActive = input.IsActive;
         ad.Ecosystem = string.IsNullOrWhiteSpace(input.Ecosystem) ? null : input.Ecosystem.Trim();
-        ad.SortOrder = input.SortOrder;
 
         ApplyPriority(ad, input);
     }

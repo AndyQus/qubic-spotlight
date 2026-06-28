@@ -21,6 +21,13 @@ public static class ApiEndpoints
             QubicStatsWorker.Latest is { } s ? Results.Ok(s) : Results.NoContent())
            .WithSummary("Qubic-Netzwerk-Kennzahlen (gecacht)");
 
+        api.MapGet("/qubic/blocks", () =>
+            QubicBlockStatsWorker.Latest is { } b ? Results.Ok(b) : Results.NoContent())
+           .WithSummary("DOGE/LTC-Block-Kennzahlen des Mining-Pools (gecacht)");
+
+        api.MapGet("/qubic/price-history", (LiteDbContext db) => Results.Ok(db.GetPriceHistory()))
+           .WithSummary("Qubic-Kurs der letzten 24h (für den Chart)");
+
         // ── Spotlight-/Feed-Seite ───────────────────────────────────────────────
         // Sortierter, optional gefilterter Anzeigen-Strom für die zweite öffentliche
         // Seite. voterId (anonyme Browser-Kennung) markiert die eigene Stimme.

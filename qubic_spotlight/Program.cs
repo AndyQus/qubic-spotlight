@@ -33,6 +33,14 @@ builder.Services.AddHttpClient<QubicStatsClient>(c =>
 });
 builder.Services.AddHostedService<QubicStatsWorker>();
 
+// Pool-Block-Kennzahlen (DOGE/LTC) von doge.qubic.tools: HttpClient + Poller
+builder.Services.AddHttpClient<QubicBlockStatsClient>(c =>
+{
+    c.BaseAddress = new Uri(builder.Configuration["QubicBlocks:BaseUrl"] ?? "https://doge.qubic.tools/");
+    c.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddHostedService<QubicBlockStatsWorker>();
+
 // Auth: JWT (Standard) + API-Key (zweites Schema)
 var tokenService = new TokenService(builder.Configuration);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

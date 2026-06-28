@@ -83,7 +83,6 @@ in `qubic_doge_stats` (z. B. `PoolBlock`, `EpochSummary`). Collections:
 | IsActive      | bool         | ✓ | Manuell de-/aktivierbar |
 | Ecosystem     | string?      | – | Gruppe/Projekt (z. B. "Wallet") |
 | OwnerUserId   | string       | ✓ | Ersteller (User-Id) |
-| SortOrder     | int          | – | Reihenfolge im Dashboard/Banner |
 | Status        | enum         | ✓ | `Approved` / `Pending` / `Rejected` — **vorbereitet** für spätere Freigabe; aktuell immer `Approved` |
 | ImpressionCount | long       | – | Denormalisierter Zähler (Anzeigen-Einblendungen) |
 | ClickCount    | long         | – | Denormalisierter Zähler (Klicks) |
