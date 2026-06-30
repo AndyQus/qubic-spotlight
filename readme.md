@@ -213,6 +213,16 @@ environment variables.
 | `DATA_DIR` | Storage for DB + uploads | (local: wwwroot) |
 | `LITEDB_FILE` | Name of the DB file | spotlight.db |
 
+## Ideas / Backlog (not yet implemented)
+
+- **Embed an X (Twitter) livestream:** show a livestream started on X on the Spotlight
+  page too. X offers **no** official native video embed like YouTube/Twitch. Preferred,
+  quick path: render the live post via the official X embed
+  (`platform.twitter.com/widgets.js`) as an embedded post card (plays inline, looks
+  like a "Twitter card"). For a clean player/fullscreen, alternatively restream to
+  YouTube Live/Twitch in parallel and embed from there.
+  See [docs/Konzept.md](docs/Konzept.md) ("Ideen / Backlog") for details.
+
 ## Notes
 
 - Tracking is GDPR-light: only hashed IP, no plaintext, no external tracking.

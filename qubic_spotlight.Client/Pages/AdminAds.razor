@@ -137,7 +137,7 @@
                         @* Chart darf auf schmalen Screens horizontal scrollen statt zu quetschen. *@
                         <div class="vis-chart-wrap">
                             <MudChart T="double" ChartType="ChartType.Line" ChartSeries="@_series" XAxisLabels="@_labels"
-                                      Width="100%" Height="320px" />
+                                      ChartOptions="@_chartOptions" Width="100%" Height="320px" />
                         </div>
                     }
                 </div>
@@ -148,7 +148,7 @@
                         @L["vis.privacy"]
                     </MudText>
 
-                    <MudTable Items="_visitors.Countries" Hover="true" Striped="true" Dense="true" Class="vis-country-table">
+                    <MudTable Items="_countriesShown" Hover="true" Striped="true" Dense="true" Class="vis-country-table">
                         <HeaderContent>
                             <MudTh>@L["vis.country"]</MudTh>
                             <MudTh Style="text-align:right;">@L["vis.visits"]</MudTh>
@@ -182,6 +182,19 @@
     private bool _visLoading;
     private List<ChartSeries<double>> _series = new();
     private string[] _labels = Array.Empty<string>();
+    // Y-Achse passt sich den Daten an (siehe BuildChart) statt fix bei 20 zu stehen.
+    // LineChartOptions (nicht ChartOptions) trägt in MudBlazor 9.x die Achsen-Optionen.
+    // Marker machen einzelne Punkte sichtbar (auch bei nur einem aktiven Tag);
+    // ZeroPoint hält die Achse bei 0 verankert.
+    private LineChartOptions _chartOptions = new()
+    {
+        YAxisTicks = 1, MaxNumYAxisTicks = 10, ShowDataMarkers = true, YAxisRequireZeroPoint = true,
+    };
+
+    // Länderliste ohne die "Unbekannt"-Zeile (Code "??"): Treffer ohne ermittelbares
+    // Land sollen die Tabelle nicht dominieren. "LO" (lokal) bleibt sichtbar.
+    private IEnumerable<CountryCount> _countriesShown =>
+        _visitors.Countries.Where(c => c.Country != "??" && !string.IsNullOrWhiteSpace(c.Country));
 
     private enum VisRange { Day, Week, Month, Year, All }
 
@@ -347,12 +360,41 @@
             new ChartSeries<double> { Name = L["vis.likes"], Data = pts.Select(p => (double)p.Likes).ToArray() },
             // Einblendungen bewusst NICHT im Chart – die Kennzahl steht in der Summen-Kachel.
         };
+
+        // Y-Achse an die Daten anpassen: MudChart rundet die Obergrenze auf das
+        // nächste Vielfache von YAxisTicks. Bei kleinen Zahlen (z. B. max 2) blieb
+        // die Achse sonst fix bei 0–20 und die Linien klebten unsichtbar unten.
+        // Wir wählen einen Tick-Schritt, der grob 4–8 Stufen ergibt.
+        var max = _series.SelectMany(s => s.Data).DefaultIfEmpty(0).Max();
+        _chartOptions = new LineChartOptions
+        {
+            YAxisTicks = NiceTick(max), MaxNumYAxisTicks = 10,
+            ShowDataMarkers = true, YAxisRequireZeroPoint = true,
+        };
     }
 
-    // Ländercode als lesbares Label: Flaggen-Emoji + Code ("🇩🇪 DE"); "??" = unbekannt.
+    // Wählt einen "runden" Tick-Abstand aus der 1-2-5-Reihe (1,2,5,10,20,50,…),
+    // sodass das Datenmaximum auf höchstens ~8 Achsenstufen abgebildet wird.
+    private static int NiceTick(double max)
+    {
+        if (max <= 0) return 1;
+        int[] muls = { 1, 2, 5 };
+        var pow = 1;
+        while (true)
+            foreach (var m in muls)
+            {
+                var step = m * pow;
+                if (max / step <= 8) return step;
+                if (m == 5) pow *= 10;
+            }
+    }
+
+    // Ländercode als lesbares Label: Flaggen-Emoji + Code ("🇩🇪 DE").
+    // Sonderfälle: "??" = unbekannt, "LO" = lokaler/privater Zugriff.
     private string CountryLabel(string code)
     {
         if (string.IsNullOrWhiteSpace(code) || code == "??") return L["vis.unknown"];
+        if (code == "LO") return $"🏠 {L["vis.local"]}";
         var c = code.ToUpperInvariant();
         if (c.Length != 2 || !char.IsLetter(c[0]) || !char.IsLetter(c[1])) return c;
         var flag = string.Concat(c.Select(ch => char.ConvertFromUtf32(0x1F1E6 + (ch - 'A'))));

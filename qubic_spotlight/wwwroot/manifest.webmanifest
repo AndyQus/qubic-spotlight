@@ -1,7 +1,7 @@
 {
   "name": "Qubic Spotlight",
   "short_name": "Spotlight",
-  "description": "Werbung & Showcase aus dem Qubic-Ökosystem",
+  "description": "Advertising & Showcase from the Qubic ecosystem",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

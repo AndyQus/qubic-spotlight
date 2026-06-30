@@ -430,3 +430,20 @@ qubic_spotlight/
    DOGE Stats, Mining-Pool …) — Admin-pflegbar, du nennst mir die Startwerte.
 2. **Sprache**: einsprachig Englisch für v1 (wie qubic.org)? Mehrsprachigkeit
    später optional.
+
+## Ideen / Backlog (noch nicht umgesetzt)
+
+- **X-(Twitter-)Livestream einbinden.** Wunsch: einen auf X gestarteten Livestream
+  auch auf unserer Seite (Spotlight) zeigen. Stand der Technik bei X:
+  - X bietet **kein** offizielles natives Video-Embed wie YouTube/Twitch (kein
+    öffentlicher Player-iframe für Live-Broadcasts).
+  - **Schnell & einfach (bevorzugt):** den Live-Post per offiziellem X-Embed
+    (`platform.twitter.com/widgets.js`) als eingebettete Post-Karte rendern — spielt
+    das Video inline ab, sieht aber nach „Twitter-Karte" aus. Umsetzbar als eigene
+    Anzeige-/Card-Variante oder als optionaler Block auf der Spotlight-Seite.
+  - **Alternative für sauberen Player / Vollbild:** parallel nach YouTube Live oder
+    Twitch streamen (OBS-Restream) und von dort einbetten — mehr Aufwand, volle
+    Kontrolle über Look & Branding.
+  - **Hinweis X Spaces (Audio):** funktioniert technisch anders (eigener Embed-Weg),
+    bei Bedarf separat prüfen.
+  - Priorität laut Abstimmung: **schnell & einfach** (offizielles X-Post-Embed).

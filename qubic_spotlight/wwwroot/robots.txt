@@ -1,0 +1,14 @@
+# robots.txt für Qubic Spotlight
+# https://spotlight.qubic.tools
+
+User-agent: *
+Allow: /
+
+# Nicht-öffentliche bzw. nicht zu indexierende Bereiche
+Disallow: /admin
+Disallow: /admin/users
+Disallow: /account
+Disallow: /login
+Disallow: /embed
+
+Sitemap: https://spotlight.qubic.tools/sitemap.xml

@@ -368,7 +368,12 @@ public class LiteDbContext : IDisposable
     // nach bucketStart, z. B. Tag oder Monat), Summen und die Gesamt-Länderliste.
     // Länder sind kumulativ (gesamt), nicht auf das Zeitfenster eingeschränkt —
     // das hält die DB schlank (keine Tag×Land-Matrix).
-    public VisitorStats GetVisitorStats(DateTime from, DateTime to, Func<DateTime, DateTime> bucketStart)
+    // bucketStart ordnet ein Datum seinem Bucket-Anfang zu (Tag bzw. Monatsanfang),
+    // next liefert den darauffolgenden Bucket-Anfang. Mit beiden wird die Zeitreihe
+    // LÜCKENLOS aufgebaut: Buckets ohne Aktivität erscheinen mit 0 statt zu fehlen —
+    // sonst zeigt der Chart bei nur einem aktiven Tag nur einen Punkt (keine Linie).
+    public VisitorStats GetVisitorStats(DateTime from, DateTime to,
+        Func<DateTime, DateTime> bucketStart, Func<DateTime, DateTime> next)
     {
         lock (_lock)
         {
@@ -377,6 +382,15 @@ public class LiteDbContext : IDisposable
 
             var buckets = new SortedDictionary<DateTime, VisitorTimePoint>();
             var stats = new VisitorStats();
+
+            // Zeitfenster vorab mit leeren Buckets füllen, damit keine Tage fehlen.
+            // Offenes "from" (DateTime.MinValue = "Gesamt") überspringen — dort
+            // beginnt die Reihe erst beim ersten echten Datenpunkt.
+            if (from > DateTime.MinValue)
+            {
+                for (var cur = bucketStart(from); cur < to; cur = next(cur))
+                    buckets[cur] = new VisitorTimePoint { Bucket = cur };
+            }
 
             foreach (var d in days)
             {

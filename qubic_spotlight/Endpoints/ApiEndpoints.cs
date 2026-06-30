@@ -184,7 +184,10 @@ public static class ApiEndpoints
             Func<DateTime, DateTime> bucketStart = bucket == "month"
                 ? d => new DateTime(d.Year, d.Month, 1, 0, 0, 0, DateTimeKind.Utc)
                 : d => d.Date;
-            return Results.Ok(db.GetVisitorStats(fromUtc, toUtc, bucketStart));
+            Func<DateTime, DateTime> next = bucket == "month"
+                ? d => d.AddMonths(1)
+                : d => d.AddDays(1);
+            return Results.Ok(db.GetVisitorStats(fromUtc, toUtc, bucketStart, next));
         }).WithSummary("Besucher-Statistik (Zeitreihe + Länder) im Zeitraum");
 
         manage.MapPost("", (AdInput input, HttpContext ctx, AdService ads) =>

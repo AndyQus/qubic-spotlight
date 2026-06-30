@@ -215,6 +215,16 @@ in den Container.
 | `DATA_DIR` | Ablage für DB + Uploads | (lokal: wwwroot) |
 | `LITEDB_FILE` | Name der DB-Datei | spotlight.db |
 
+## Ideen / Backlog (noch nicht umgesetzt)
+
+- **X-(Twitter-)Livestream einbinden:** einen auf X gestarteten Livestream auch auf
+  der Spotlight-Seite zeigen. X bietet **kein** offizielles natives Video-Embed wie
+  YouTube/Twitch. Bevorzugter, schneller Weg: den Live-Post per offiziellem X-Embed
+  (`platform.twitter.com/widgets.js`) als eingebettete Post-Karte rendern (spielt
+  inline ab, sieht nach „Twitter-Karte" aus). Für einen sauberen Player/Vollbild
+  alternativ parallel nach YouTube Live/Twitch streamen und von dort einbetten.
+  Details siehe [docs/Konzept.md](docs/Konzept.md) („Ideen / Backlog").
+
 ## Hinweise
 
 - Tracking ist DSGVO-arm: nur gehashte IP, kein Klartext, kein externes Tracking.

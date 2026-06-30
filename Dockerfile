@@ -11,5 +11,11 @@ ENV ASPNETCORE_URLS=http://+:8080 \
     LITEDB_FILE=spotlight.db
 
 COPY --from=build /app/publish .
+
+# Geo-Datenbank fest ins Image backen (db-ip Country Lite, CC-BY-4.0). Liegt
+# getrennt von /data (Volume), damit die Länderermittlung auch ohne manuell
+# bestücktes Volume funktioniert. GeoIpService sucht hier als Fallback.
+COPY --from=build /src/qubic_spotlight/GeoData/dbip-country-lite.mmdb /app/GeoData/dbip-country-lite.mmdb
+
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "qubic_spotlight.dll"]
