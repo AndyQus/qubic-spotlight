@@ -13,7 +13,15 @@ public class AdService
 
     public AdService(LiteDbContext db) => _db = db;
 
-    public List<Ad> All() => _db.GetAllAds();
+    // Für die Verwaltungsliste: alle Anzeigen mit aufgelöstem Autor (OwnerEmail).
+    public List<Ad> All()
+    {
+        var ads = _db.GetAllAds();
+        var emails = _db.GetAllUsers().ToDictionary(u => u.Id.ToString(), u => u.Email);
+        foreach (var ad in ads)
+            ad.OwnerEmail = emails.TryGetValue(ad.OwnerUserId, out var email) ? email : null;
+        return ads;
+    }
 
     // Klick-Statistik pro Anzeige für [from, to), absteigend nach Klicks.
     // Anzeigen ohne Events im Zeitraum erscheinen mit 0 (volle Übersicht).

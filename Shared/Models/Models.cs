@@ -44,6 +44,12 @@ public class Ad
     public bool IsActive { get; set; } = true;
     public string? Ecosystem { get; set; }
     public string OwnerUserId { get; set; } = "";
+
+    // Anzeigename des Autors (E-Mail des Erstellers). Wird NICHT persistiert
+    // (siehe BsonMapper-Konfiguration im LiteDbContext), sondern beim Ausliefern
+    // der Verwaltungsliste aus OwnerUserId aufgelöst.
+    public string? OwnerEmail { get; set; }
+
     public AdStatus Status { get; set; } = AdStatus.Approved;
 
     // ── Priorisierung / "Pin" (nur Admin + Marketing) ────────────────────────

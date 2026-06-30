@@ -244,6 +244,10 @@
                 <MudTh>@L["col.image"]</MudTh>
                 <MudTh>@L["col.title"]</MudTh>
                 <MudTh>@L["col.ecosystem"]</MudTh>
+                @if (_manager)
+                {
+                    <MudTh>@L["col.author"]</MudTh>
+                }
                 <MudTh>@L["col.start"]</MudTh>
                 <MudTh>@L["col.expiry"]</MudTh>
                 <MudTh>@L["col.priority"]</MudTh>
@@ -258,6 +262,10 @@
                 <MudTd DataLabel="@L["col.image"]" Style="height:72px;">@Thumb(context.ImageUrl)</MudTd>
                 <MudTd DataLabel="@L["col.title"]">@context.Title</MudTd>
                 <MudTd DataLabel="@L["col.ecosystem"]">@context.Ecosystem</MudTd>
+                @if (_manager)
+                {
+                    <MudTd DataLabel="@L["col.author"]">@(string.IsNullOrEmpty(context.OwnerEmail) ? "–" : context.OwnerEmail)</MudTd>
+                }
                 <MudTd DataLabel="@L["col.start"]">@context.StartDate.ToString("yyyy-MM-dd")</MudTd>
                 <MudTd DataLabel="@L["col.expiry"]">@(context.ExpiryDate?.ToString("yyyy-MM-dd") ?? "–")</MudTd>
                 <MudTd DataLabel="@L["col.priority"]">

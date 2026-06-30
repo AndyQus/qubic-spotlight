@@ -21,6 +21,11 @@ public class LiteDbContext : IDisposable
             filename = Path.Combine(dataDir, dbFile);
         }
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(filename))!);
+        // OwnerEmail ist ein reines Ausgabefeld (aus OwnerUserId aufgelöst) und
+        // wird nicht in der DB gespeichert.
+        var mapper = new BsonMapper();
+        mapper.Entity<Ad>().Ignore(x => x.OwnerEmail);
+
         // Shared-Verbindung: mehrere Prozesse dürfen dieselbe DB öffnen (z. B.
         // dotnet watch + paralleler F5-Start im Dev). Verhindert den exklusiven
         // Datei-Lock von LiteDB ("being used by another process").
@@ -28,7 +33,7 @@ public class LiteDbContext : IDisposable
         {
             Filename = filename,
             Connection = ConnectionType.Shared,
-        });
+        }, mapper);
         EnsureIndexes();
     }
 
