@@ -7,7 +7,7 @@
     <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
     <AssemblyName>qubic_spotlight.Client</AssemblyName>
     <RootNamespace>qubic_spotlight.Client</RootNamespace>
-    <Version>0.0.2</Version>
+    <Version>0.0.3</Version>
     <WasmFingerprintAssets Condition="'$(Configuration)' == 'Debug'">false</WasmFingerprintAssets>
   </PropertyGroup>
 

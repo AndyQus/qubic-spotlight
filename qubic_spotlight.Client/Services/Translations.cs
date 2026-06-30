@@ -215,6 +215,7 @@ public static class Translations
         ["footer.disclaimer.data"] = "Network data is retrieved from the public RPC endpoint",
         ["footer.disclaimer.data2"] = "the DOGE/LTC block figures from",
         ["footer.disclaimer.noguarantee"] = "We do not guarantee the completeness, accuracy, or availability of the data.",
+        ["footer.disclaimer.ads"] = "The advertisements originate from third parties; the respective advertisers are solely responsible for their content. We accept no warranty or liability for their accuracy, completeness, timeliness, or lawfulness.",
         ["footer.disclaimer.demo"] = "Use it for demonstration and analysis purposes only.",
         ["footer.sponsored"] = "Qubic – Sponsored by AndyQus",
     };
@@ -415,6 +416,7 @@ public static class Translations
         ["footer.disclaimer.data"] = "Die Netzwerkdaten stammen vom öffentlichen RPC-Endpunkt",
         ["footer.disclaimer.data2"] = "die DOGE-/LTC-Block-Zahlen von",
         ["footer.disclaimer.noguarantee"] = "Wir übernehmen keine Gewähr für Vollständigkeit, Richtigkeit oder Verfügbarkeit der Daten.",
+        ["footer.disclaimer.ads"] = "Die Werbeanzeigen stammen von Dritten; für ihren Inhalt sind ausschließlich die jeweiligen Inserenten verantwortlich. Für die Richtigkeit, Vollständigkeit, Aktualität und Rechtmäßigkeit übernehmen wir keine Gewähr und keine Haftung.",
         ["footer.disclaimer.demo"] = "Nutzung nur zu Demonstrations- und Analysezwecken.",
         ["footer.sponsored"] = "Qubic – Sponsored by AndyQus",
     };
