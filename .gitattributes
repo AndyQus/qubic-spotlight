@@ -1,0 +1,2 @@
+# Shell-Skripte müssen LF behalten, sonst scheitert die Shebang-Zeile auf Linux.
+*.sh text eol=lf

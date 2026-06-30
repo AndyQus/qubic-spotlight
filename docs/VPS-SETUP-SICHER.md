@@ -249,9 +249,9 @@ services:
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET fehlt in .env}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@qubic.org}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD fehlt in .env}
-      # Optional: Länder-Statistik. Pfad zur lokalen GeoLite2-Country-DB.
+      # Optional: Länder-Statistik. Pfad zur lokalen Country-Geo-DB (MMDB).
       # Fehlt die Datei, werden Besuche einfach ohne Land gezählt (siehe 10d).
-      - GEOIP_DB=/data/GeoLite2-Country.mmdb
+      - GEOIP_DB=/data/dbip-country-lite.mmdb
     volumes:
       - ./data:/data
     # KEIN ports:-Mapping nach außen! Nur Caddy spricht intern mit der App.
@@ -391,39 +391,55 @@ chmod 600 /opt/qubic_spotlight/.env
 > `ADMIN_PASSWORD` wird nur beim **allerersten** Start verwendet (solange die DB leer
 > ist). Nach dem ersten Login in der App das Passwort dort ändern.
 
-### 10d. Länder-Statistik (optional, GeoLite2)
+### 10d. Länder-Statistik (optional, db-ip Lite – kein Account)
 
 Im Admin-Bereich (Tab **Besucher**) gibt es eine Liste „Besuche nach Ländern". Das
 Land wird **nur zum Zeitpunkt des Aufrufs** aus der IP ermittelt; die **IP wird nie
-gespeichert** — abgelegt wird ausschließlich der anonymisierte 2-Buchstaben-Ländercode
-(z. B. `DE`). Ohne die DB funktioniert alles weiter, die Besuche zählen dann nur ohne
-Land (`Unbekannt`).
+gespeichert und verlässt nie den Server** — abgelegt wird ausschließlich der
+anonymisierte 2-Buchstaben-Ländercode (z. B. `DE`). Ohne die DB funktioniert alles
+weiter, die Besuche zählen dann nur ohne Land (`Unbekannt`).
 
-Die Erkennung nutzt die kostenlose, **offline** arbeitende MaxMind-Datenbank
-`GeoLite2-Country.mmdb` (keine externen Aufrufe zur Laufzeit):
+Die Erkennung nutzt die kostenlose, **offline** arbeitende Datenbank
+**„IP to Country Lite" von db-ip.com** (Format MMDB, **ohne Account/Login**, Lizenz
+CC-BY-4.0). Keine externen Aufrufe zur Laufzeit.
+
+Bequem per beiliegendem Skript (liegt im Repo unter
+`qubic_spotlight/scripts/update-geoip.sh`; einmalig nach
+`/opt/qubic_spotlight/update-geoip.sh` kopieren und ausführbar machen):
 
 ```bash
-# 1) Kostenlosen MaxMind-Account anlegen: https://www.maxmind.com/en/geolite2/signup
-# 2) Lizenzschlüssel erzeugen (Account → Manage License Keys)
-# 3) GeoLite2-Country (Format: MaxMind DB, .mmdb) herunterladen, z. B.:
-LICENSE_KEY=DEIN_KEY
-curl -L -o /tmp/geolite2.tar.gz \
-  "https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-Country&license_key=${LICENSE_KEY}&suffix=tar.gz"
-
-# 4) Die .mmdb ins Daten-Volume legen (neben spotlight.db):
-tar -xzf /tmp/geolite2.tar.gz -C /tmp
-cp /tmp/GeoLite2-Country_*/GeoLite2-Country.mmdb /opt/qubic_spotlight/data/
+chmod +x /opt/qubic_spotlight/update-geoip.sh
+/opt/qubic_spotlight/update-geoip.sh /opt/qubic_spotlight/data   # zieht aktuellen Monat, sonst Vormonat
 docker compose restart qubic_spotlight
 ```
 
-Der Pfad ist über `GEOIP_DB` (Standard `/data/GeoLite2-Country.mmdb`) gesetzt; die App
-lädt die DB beim Start. Im Log erscheint `GeoLite2-Country-DB geladen: …` bzw. der
-Hinweis, dass keine DB gefunden wurde.
+Oder manuell:
+
+```bash
+YM=$(date -u +%Y-%m)
+curl -fsSL "https://download.db-ip.com/free/dbip-country-lite-${YM}.mmdb.gz" \
+  -o /tmp/dbip.mmdb.gz
+gunzip -f /tmp/dbip.mmdb.gz
+mv /tmp/dbip.mmdb /opt/qubic_spotlight/data/dbip-country-lite.mmdb
+docker compose restart qubic_spotlight
+```
+
+Der Pfad ist über `GEOIP_DB` (Standard `/data/dbip-country-lite.mmdb`) gesetzt; die App
+lädt die DB beim Start. Im Log erscheint `Country-Geo-DB geladen: …` bzw. der Hinweis,
+dass keine DB gefunden wurde.
+
+> **Lizenz-Pflicht:** db-ip verlangt die Attribution „IP Geolocation by DB-IP". Sie ist
+> bereits als Link im Footer der App enthalten — bitte nicht entfernen.
+
+> **Monatliches Update:** db-ip veröffentlicht die DB monatlich neu. Ein Cron genügt:
+> ```bash
+> # crontab -e  → am 2. jedes Monats um 03:30:
+> 30 3 2 * * /opt/qubic_spotlight/update-geoip.sh /opt/qubic_spotlight/data && docker restart qubic_spotlight
+> ```
 
 > Wichtig für die korrekte IP: Caddy gibt die echte Besucher-IP im Header
 > `X-Forwarded-For` an die App weiter (Standardverhalten von `reverse_proxy`). Nur diese
-> wird flüchtig zur Länderermittlung benutzt. MaxMind verlangt, die DB regelmäßig zu
-> aktualisieren — ein wöchentlicher Cron mit obigem Download genügt.
+> wird flüchtig zur Länderermittlung benutzt.
 
 ---
 

@@ -35,10 +35,11 @@ services:
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET fehlt in .env}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@qubic.org}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD fehlt in .env}
-      # Optional: Länder-Statistik (Admin → Besucher). Pfad zur lokalen
-      # GeoLite2-Country-DB; fehlt sie, zählen Besuche ohne Land. Die IP wird
-      # nie gespeichert, nur der anonymisierte Ländercode. Setup s. VPS-SETUP-SICHER.md (10d).
-      - GEOIP_DB=/data/GeoLite2-Country.mmdb
+      # Optional: Länder-Statistik (Admin → Besucher). Pfad zur lokalen db-ip
+      # "IP to Country Lite"-DB (MMDB, kein Account); fehlt sie, zählen Besuche
+      # ohne Land. Die IP wird nie gespeichert, nur der anonymisierte Ländercode.
+      # Setup + Download-Skript s. VPS-SETUP-SICHER.md (10d).
+      - GEOIP_DB=/data/dbip-country-lite.mmdb
     ports:
       - "8080:8080"
     volumes:
