@@ -10,6 +10,13 @@
     .mud-tabs-panels {
         padding-top: 12px !important;
     }
+    /* Refresh-Icon dreht sich, solange die Daten geladen werden. */
+    .mud-spin .mud-icon-root {
+        animation: spotlight-spin 0.8s linear infinite;
+    }
+    @@keyframes spotlight-spin {
+        to { transform: rotate(360deg); }
+    }
 </style>
 
 <PageTitle>@L["ads.title"] – Qubic Spotlight</PageTitle>
@@ -28,14 +35,17 @@
 
 <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mt-2">
     <MudTabPanel Text="@L["ads.tabActive"]" Icon="@Icons.Material.Filled.CheckCircle">
+        @RefreshBar(LoadAsync, _loading)
         @AdTable(_active, L["dash.noAds"])
     </MudTabPanel>
 
     <MudTabPanel Text="@L["ads.tabExpired"]" Icon="@Icons.Material.Filled.HistoryToggleOff">
+        @RefreshBar(LoadAsync, _loading)
         @AdTable(_expired, L["ads.noExpired"])
     </MudTabPanel>
 
     <MudTabPanel Text="@L["ads.tabStats"]" Icon="@Icons.Material.Filled.BarChart">
+        @RefreshBar(LoadStatsAsync, _statsLoading)
         <div class="d-flex flex-wrap gap-3 align-center mb-4">
             <MudSelect T="StatRange" @bind-Value="_range" Label="@L["stats.range"]" Dense="true"
                        Variant="Variant.Outlined" Style="max-width:160px;">
@@ -89,6 +99,7 @@
     @if (_manager)
     {
         <MudTabPanel Text="@L["vis.tab"]" Icon="@Icons.Material.Filled.QueryStats">
+            @RefreshBar(LoadVisitorsAsync, _visLoading)
             <div class="spotlight-sort vis-range mb-4">
                 <button class="spotlight-seg @(_visRange == VisRange.Day ? "on" : "")"
                         @onclick="() => SetVisRange(VisRange.Day)">@L["vis.day"]</button>
@@ -334,7 +345,7 @@
             new ChartSeries<double> { Name = L["vis.visits"], Data = pts.Select(p => (double)p.Visits).ToArray() },
             new ChartSeries<double> { Name = L["vis.clicks"], Data = pts.Select(p => (double)p.Clicks).ToArray() },
             new ChartSeries<double> { Name = L["vis.likes"], Data = pts.Select(p => (double)p.Likes).ToArray() },
-            new ChartSeries<double> { Name = L["vis.impressions"], Data = pts.Select(p => (double)p.Impressions).ToArray() },
+            // Einblendungen bewusst NICHT im Chart – die Kennzahl steht in der Summen-Kachel.
         };
     }
 
@@ -357,6 +368,18 @@
             </div>
             <MudText Typo="Typo.h5" Style="font-weight:600;">@value.ToString("#,0")</MudText>
         </MudPaper>;
+
+    // Refresh-Leiste oben rechts unter der Tab-Bar: lädt die Daten des Tabs neu.
+    // Während des Ladens ist der Button deaktiviert und das Icon dreht sich.
+    private RenderFragment RefreshBar(Func<Task> reload, bool loading) =>
+        @<div class="d-flex justify-end mb-2">
+            <MudTooltip Text="@L["common.refresh"]">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Medium"
+                               Color="Color.Default" Disabled="@loading"
+                               Class="@(loading ? "mud-spin" : null)"
+                               OnClick="@(EventCallback.Factory.Create(this, reload))" />
+            </MudTooltip>
+        </div>;
 
     private async Task EditAsync(Ad? ad)
     {
