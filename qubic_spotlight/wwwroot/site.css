@@ -224,6 +224,13 @@ a {
     flex: 0 0 auto;
 }
 
+/* Auf dem Smartphone die Ökosystem-Filter ausblenden. */
+@media (max-width: 700px) {
+    .spotlight-filter {
+        display: none;
+    }
+}
+
 
 .spotlight-chip {
     border: 1px solid var(--mud-palette-lines-default, #243246);
