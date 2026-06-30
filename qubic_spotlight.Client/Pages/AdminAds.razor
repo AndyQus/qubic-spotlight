@@ -6,6 +6,12 @@
 @inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthProvider
 
+<style>
+    .mud-tabs-panels {
+        padding-top: 12px !important;
+    }
+</style>
+
 <PageTitle>@L["ads.title"] – Qubic Spotlight</PageTitle>
 
 <div class="d-flex align-center mb-4">
@@ -79,6 +85,75 @@
             </NoRecordsContent>
         </MudTable>
     </MudTabPanel>
+
+    @if (_manager)
+    {
+        <MudTabPanel Text="@L["vis.tab"]" Icon="@Icons.Material.Filled.QueryStats">
+            <div class="spotlight-sort vis-range mb-4">
+                <button class="spotlight-seg @(_visRange == VisRange.Day ? "on" : "")"
+                        @onclick="() => SetVisRange(VisRange.Day)">@L["vis.day"]</button>
+                <button class="spotlight-seg @(_visRange == VisRange.Week ? "on" : "")"
+                        @onclick="() => SetVisRange(VisRange.Week)">@L["vis.week"]</button>
+                <button class="spotlight-seg @(_visRange == VisRange.Month ? "on" : "")"
+                        @onclick="() => SetVisRange(VisRange.Month)">@L["vis.month"]</button>
+                <button class="spotlight-seg @(_visRange == VisRange.Year ? "on" : "")"
+                        @onclick="() => SetVisRange(VisRange.Year)">@L["vis.year"]</button>
+                <button class="spotlight-seg @(_visRange == VisRange.All ? "on" : "")"
+                        @onclick="() => SetVisRange(VisRange.All)">@L["vis.all"]</button>
+            </div>
+
+            @* Summen-Kacheln *@
+            <div class="vis-sumcards mb-4">
+                @SumCard(L["vis.visits"], _visitors.TotalVisits, Icons.Material.Filled.People, "#3b82f6")
+                @SumCard(L["vis.clicks"], _visitors.TotalClicks, Icons.Material.Filled.AdsClick, "#f59e0b")
+                @SumCard(L["vis.likes"], _visitors.TotalLikes, Icons.Material.Filled.ThumbUp, "#22c55e")
+                @SumCard(L["vis.impressions"], _visitors.TotalImpressions, Icons.Material.Filled.Visibility, "#64748b")
+            </div>
+
+            @* Desktop: zwei Spalten (Chart | Länderliste); Mobile: eine Spalte. *@
+            <div class="vis-columns">
+                <div class="vis-col-chart">
+                    @if (_visLoading)
+                    {
+                        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4" />
+                    }
+                    else if (_visitors.Series.Count == 0)
+                    {
+                        <MudText Class="my-4">@L["vis.noData"]</MudText>
+                    }
+                    else
+                    {
+                        @* Chart darf auf schmalen Screens horizontal scrollen statt zu quetschen. *@
+                        <div class="vis-chart-wrap">
+                            <MudChart T="double" ChartType="ChartType.Line" ChartSeries="@_series" XAxisLabels="@_labels"
+                                      Width="100%" Height="320px" />
+                        </div>
+                    }
+                </div>
+
+                <div class="vis-col-countries">
+                    <MudText Typo="Typo.h6" Class="mb-2">@L["vis.countries"]</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3" Style="color:var(--mud-palette-text-secondary);">
+                        @L["vis.privacy"]
+                    </MudText>
+
+                    <MudTable Items="_visitors.Countries" Hover="true" Striped="true" Dense="true" Class="vis-country-table">
+                        <HeaderContent>
+                            <MudTh>@L["vis.country"]</MudTh>
+                            <MudTh Style="text-align:right;">@L["vis.visits"]</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="@L["vis.country"]">@CountryLabel(context.Country)</MudTd>
+                            <MudTd DataLabel="@L["vis.visits"]" Style="text-align:right;font-weight:600;">@context.Visits</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText>@L["vis.noData"]</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                </div>
+            </div>
+        </MudTabPanel>
+    }
 </MudTabs>
 
 @code {
@@ -90,6 +165,24 @@
 
     private List<AdClickStat> _stats = new();
     private bool _statsLoading;
+
+    // ── Besucher-Tab ──────────────────────────────────────────────────────────
+    private VisitorStats _visitors = new();
+    private bool _visLoading;
+    private List<ChartSeries<double>> _series = new();
+    private string[] _labels = Array.Empty<string>();
+
+    private enum VisRange { Day, Week, Month, Year, All }
+
+    // Standard: Letzte 30 Tage.
+    private VisRange _visRange = VisRange.Month;
+
+    private async Task SetVisRange(VisRange range)
+    {
+        if (_visRange == range) return;
+        _visRange = range;
+        await LoadVisitorsAsync();
+    }
 
     private enum StatRange { Day, Month, Year }
 
@@ -151,7 +244,11 @@
         var state = await AuthProvider.GetAuthenticationStateAsync();
         _manager = state.User.IsInRole(Roles.Admin) || state.User.IsInRole(Roles.Marketing);
         await LoadAsync();
-        if (_manager) await LoadStatsAsync();
+        if (_manager)
+        {
+            await LoadStatsAsync();
+            await LoadVisitorsAsync();
+        }
     }
 
     private async Task LoadAsync()
@@ -195,6 +292,71 @@
         _statsLoading = false;
         StateHasChanged();
     }
+
+    // Zeitfenster + Bucket-Auflösung aus der Besucher-Filterauswahl ableiten.
+    // Tag/Woche/Monat → Tagesbuckets; Jahr/Gesamt → Monatsbuckets.
+    private (DateTime from, DateTime to, string bucket) VisitorRange()
+    {
+        var today = DateTime.UtcNow.Date;
+        return _visRange switch
+        {
+            VisRange.Day => (today, today.AddDays(1), "day"),
+            VisRange.Week => (today.AddDays(-6), today.AddDays(1), "day"),
+            VisRange.Month => (today.AddDays(-29), today.AddDays(1), "day"),
+            VisRange.Year => (new DateTime(today.Year, today.Month, 1).AddMonths(-11), today.AddDays(1), "month"),
+            _ => (DateTime.MinValue, today.AddDays(1), "month"),
+        };
+    }
+
+    private async Task LoadVisitorsAsync()
+    {
+        if (!_manager) return;
+        _visLoading = true;
+        StateHasChanged();
+        var (from, to, bucket) = VisitorRange();
+        _visitors = await Api.GetVisitorStatsAsync(from, to, bucket);
+        BuildChart(bucket);
+        _visLoading = false;
+        StateHasChanged();
+    }
+
+    // Baut die Chart-Serien (eine Linie je Kennzahl) und die X-Achsen-Beschriftung.
+    private void BuildChart(string bucket)
+    {
+        var pts = _visitors.Series;
+        _labels = pts.Select(p => bucket == "month"
+                ? p.Bucket.ToString("MMM yy")
+                : p.Bucket.ToString("dd.MM"))
+            .ToArray();
+
+        _series = new()
+        {
+            new ChartSeries<double> { Name = L["vis.visits"], Data = pts.Select(p => (double)p.Visits).ToArray() },
+            new ChartSeries<double> { Name = L["vis.clicks"], Data = pts.Select(p => (double)p.Clicks).ToArray() },
+            new ChartSeries<double> { Name = L["vis.likes"], Data = pts.Select(p => (double)p.Likes).ToArray() },
+            new ChartSeries<double> { Name = L["vis.impressions"], Data = pts.Select(p => (double)p.Impressions).ToArray() },
+        };
+    }
+
+    // Ländercode als lesbares Label: Flaggen-Emoji + Code ("🇩🇪 DE"); "??" = unbekannt.
+    private string CountryLabel(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code) || code == "??") return L["vis.unknown"];
+        var c = code.ToUpperInvariant();
+        if (c.Length != 2 || !char.IsLetter(c[0]) || !char.IsLetter(c[1])) return c;
+        var flag = string.Concat(c.Select(ch => char.ConvertFromUtf32(0x1F1E6 + (ch - 'A'))));
+        return $"{flag} {c}";
+    }
+
+    // Kompakte Summen-Kachel über dem Chart.
+    private RenderFragment SumCard(string label, long value, string icon, string color) =>
+        @<MudPaper Elevation="0" Class="pa-3 vis-sumcard" Style="@($"border-left:3px solid {color};")">
+            <div class="d-flex align-center gap-2 mb-1">
+                <MudIcon Icon="@icon" Size="Size.Small" Style="@($"color:{color};")" />
+                <MudText Typo="Typo.caption" Style="color:var(--mud-palette-text-secondary);">@label</MudText>
+            </div>
+            <MudText Typo="Typo.h5" Style="font-weight:600;">@value.ToString("#,0")</MudText>
+        </MudPaper>;
 
     private async Task EditAsync(Ad? ad)
     {

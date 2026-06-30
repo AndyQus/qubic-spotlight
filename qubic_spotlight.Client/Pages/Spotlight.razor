@@ -185,8 +185,10 @@
     private const string SortKey = "qspot_spotlight_sort";
     private const string EcoKey = "qspot_spotlight_eco";
     private const string VoterKey = "qspot_voter";
+    private const string VisitKey = "qspot_visited";
 
     private QubicStats? _stats;
+    private long _visits;
     private QubicBlockStats? _blocks;
     private List<PricePoint> _priceHistory = new();
     private List<PublicAd> _ads = new();
@@ -220,6 +222,19 @@
         {
             _voterId = await JS.InvokeAsync<string>("crypto.randomUUID");
             await SetItem(VoterKey, _voterId);
+        }
+
+        // Seitenbesuch zählen — pro Browser-Session genau einmal (sessionStorage),
+        // sonst nur den aktuellen Gesamtwert lesen.
+        var visited = await GetSessionItem(VisitKey);
+        if (string.IsNullOrEmpty(visited))
+        {
+            _visits = await Api.RecordVisitAsync();
+            await SetSessionItem(VisitKey, "1");
+        }
+        else
+        {
+            _visits = await Api.GetVisitCountAsync();
         }
 
         await RefreshStatsAsync();
@@ -301,6 +316,9 @@
     private Task<string?> GetItem(string key) => JS.InvokeAsync<string?>("localStorage.getItem", key).AsTask();
     private Task SetItem(string key, string value) => JS.InvokeVoidAsync("localStorage.setItem", key, value).AsTask();
 
+    private Task<string?> GetSessionItem(string key) => JS.InvokeAsync<string?>("sessionStorage.getItem", key).AsTask();
+    private Task SetSessionItem(string key, string value) => JS.InvokeVoidAsync("sessionStorage.setItem", key, value).AsTask();
+
     private static string ClickUrl(PublicAd ad) => $"/api/ads/{ad.Id}/click";
 
     // Öffnet den Artikel in einem neuen Tab (zählt serverseitig den Klick).
@@ -332,10 +350,10 @@
         // yield return (L["stat.supply"], Text(Format.Compact(s.CirculatingSupply)));
         yield return (L["stat.priceChart"], PriceChart());
         yield return (L["stat.epoch"], Text(s.Epoch.ToString()));
-        yield return (L["stat.quality"], Text(s.EpochTickQuality.ToString("0.0") + "%"));
         yield return (L["stat.burned"], Text(Format.Compact(s.BurnedQus)));
         yield return (L["stat.dogeBlocks"], Blocks(b => b.DogeTotalConfirmed, b => b.DogeCurrentEpochConfirmed));
         yield return (L["stat.ltcBlocks"], Blocks(b => b.LtcTotalConfirmed, b => b.LtcCurrentEpochConfirmed));
+        yield return (L["stat.visits"], Text(Format.Number(_visits)));
     }
 
     private static RenderFragment Text(string value) =>@<text>@value</text>;

@@ -271,3 +271,72 @@ public class PricePoint
     public DateTime Timestamp { get; set; }
     public double Price { get; set; }
 }
+
+// Einfacher benannter Zähler (z. B. Gesamt-Seitenbesuche der Spotlight-Seite).
+public class Counter
+{
+    public const string SiteVisits = "site_visits";
+
+    public string Id { get; set; } = "";
+    public long Value { get; set; }
+}
+
+// Antwort der Besuchs-Endpunkte (/api/visit, /api/visits).
+public class VisitCount
+{
+    public long Total { get; set; }
+}
+
+// Aggregierte Tageskennzahlen der Spotlight-Seite — bewusst schlank: genau EINE
+// Zeile pro Tag, deren Zähler bei jedem Ereignis hochgezählt werden (kein
+// Datensatz je Besuch). Id ist das Datum als "yyyy-MM-dd" (UTC). Clicks =
+// Klicks auf eine Anzeige (= Anzeige angeschaut/geöffnet, ein Ereignis).
+public class DailyStat
+{
+    public string Id { get; set; } = "";       // yyyy-MM-dd (UTC)
+    public DateTime Date { get; set; }          // Tagesbeginn UTC (für Bereichsabfragen)
+    public long Visits { get; set; }
+    public long Clicks { get; set; }
+    public long Likes { get; set; }
+    public long Impressions { get; set; }
+}
+
+// Kumulativer Besuchszähler je Land (eine Zeile pro Land, Gesamtsumme). Id ist
+// der ISO-3166-Alpha-2-Code (z. B. "DE"); "??" = unbekannt/nicht zugeordnet.
+// Datensparsam: speichert NIE eine IP, nur den Ländercode und die Anzahl.
+public class CountryStat
+{
+    public string Id { get; set; } = "";       // ISO-Ländercode oder "??"
+    public long Visits { get; set; }
+}
+
+// Ein Punkt der Besucher-Zeitreihe (für die Admin-Charts). Bucket ist der
+// Beginn des Intervalls (Tag/Monat, UTC); die Metriken sind die Summen im
+// jeweiligen Intervall.
+public class VisitorTimePoint
+{
+    public DateTime Bucket { get; set; }
+    public long Visits { get; set; }
+    public long Clicks { get; set; }       // Klicks auf eine Anzeige (= Anzeige angeschaut/geöffnet)
+    public long Likes { get; set; }
+    public long Impressions { get; set; }  // Einblendungen im Widget
+}
+
+// Besucher-Auswertung für ein Zeitfenster: Zeitreihe (Chart) + Summen + Länder.
+public class VisitorStats
+{
+    public List<VisitorTimePoint> Series { get; set; } = new();
+    public long TotalVisits { get; set; }
+    public long TotalClicks { get; set; }
+    public long TotalLikes { get; set; }
+    public long TotalImpressions { get; set; }
+    public List<CountryCount> Countries { get; set; } = new();
+}
+
+// Besuche je Land (absteigend sortiert). Country ist der ISO-3166-Alpha-2-Code
+// (z. B. "DE"); "??" bzw. leer = unbekannt/nicht zugeordnet.
+public class CountryCount
+{
+    public string Country { get; set; } = "";
+    public long Visits { get; set; }
+}

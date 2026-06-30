@@ -28,6 +28,19 @@ public static class ApiEndpoints
         api.MapGet("/qubic/price-history", (LiteDbContext db) => Results.Ok(db.GetPriceHistory()))
            .WithSummary("Qubic-Kurs der letzten 24h (für den Chart)");
 
+        // Seitenbesuche der Spotlight-Seite. Der Client zählt pro Browser-Session
+        // genau einmal hoch (POST) und liest den Gesamtwert für die Kachel (GET).
+        // Beim Zählen wird die IP NUR flüchtig zur Länderermittlung genutzt und
+        // nicht gespeichert — abgelegt wird ausschließlich der Ländercode.
+        api.MapPost("/visit", (HttpContext ctx, LiteDbContext db, GeoIpService geo) =>
+        {
+            var country = geo.LookupCountry(ClientIp(ctx));
+            return Results.Ok(new VisitCount { Total = db.IncrementVisit(country) });
+        }).WithSummary("Einen Seitenbesuch zählen");
+
+        api.MapGet("/visits", (LiteDbContext db) => Results.Ok(new VisitCount { Total = db.GetVisitCount() }))
+           .WithSummary("Gesamtzahl der Seitenbesuche");
+
         // ── Spotlight-/Feed-Seite ───────────────────────────────────────────────
         // Sortierter, optional gefilterter Anzeigen-Strom für die zweite öffentliche
         // Seite. voterId (anonyme Browser-Kennung) markiert die eigene Stimme.
@@ -162,6 +175,18 @@ public static class ApiEndpoints
             return Results.Ok(ads.ClickStats(fromUtc, toUtc));
         }).WithSummary("Klick-/Impression-Statistik pro Anzeige im Zeitraum");
 
+        // Besucher-Statistik (Zeitreihe + Länder) im Zeitfenster [from, to).
+        // bucket=day|month steuert die Auflösung der Zeitreihe (Tag bzw. Monat).
+        manage.MapGet("/visitors", (LiteDbContext db, DateTime? from, DateTime? to, string? bucket) =>
+        {
+            var fromUtc = from?.ToUniversalTime() ?? DateTime.MinValue;
+            var toUtc = to?.ToUniversalTime() ?? DateTime.UtcNow;
+            Func<DateTime, DateTime> bucketStart = bucket == "month"
+                ? d => new DateTime(d.Year, d.Month, 1, 0, 0, 0, DateTimeKind.Utc)
+                : d => d.Date;
+            return Results.Ok(db.GetVisitorStats(fromUtc, toUtc, bucketStart));
+        }).WithSummary("Besucher-Statistik (Zeitreihe + Länder) im Zeitraum");
+
         manage.MapPost("", (AdInput input, HttpContext ctx, AdService ads) =>
         {
             var (ok, error, ad) = ads.Create(input, ctx.User.UserId(), isManager: true);
@@ -239,6 +264,21 @@ public static class ApiEndpoints
         return string.IsNullOrEmpty(dataDir)
             ? Path.Combine(env.WebRootPath ?? "wwwroot", "uploads")
             : Path.Combine(dataDir, "uploads");
+    }
+
+    // Echte Client-IP — hinter dem Reverse Proxy (Caddy) steht sie im ersten
+    // Eintrag von X-Forwarded-For, sonst die direkte Verbindungs-IP. Wird nur
+    // flüchtig zur Länderermittlung genutzt und nirgends gespeichert.
+    private static System.Net.IPAddress? ClientIp(HttpContext ctx)
+    {
+        var fwd = ctx.Request.Headers["X-Forwarded-For"].ToString();
+        if (!string.IsNullOrWhiteSpace(fwd))
+        {
+            var first = fwd.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                           .FirstOrDefault();
+            if (System.Net.IPAddress.TryParse(first, out var ip)) return ip;
+        }
+        return ctx.Connection.RemoteIpAddress;
     }
 
     private static string HashIp(HttpContext ctx)

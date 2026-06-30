@@ -22,6 +22,7 @@ builder.Services.AddMudServices();
 // Datenbank + Services
 builder.Services.AddSingleton<LiteDbContext>();
 builder.Services.AddSingleton<TokenService>();
+builder.Services.AddSingleton<GeoIpService>();
 builder.Services.AddScoped<AdService>();
 builder.Services.AddScoped<UserService>();
 

@@ -52,6 +52,9 @@ public class LiteDbContext : IDisposable
         events.EnsureIndex(x => x.AdId);
         events.EnsureIndex(x => x.Timestamp);
         events.EnsureIndex(x => x.IpHash);
+
+        var daily = _db.GetCollection<DailyStat>("daily_stats");
+        daily.EnsureIndex(x => x.Date);
     }
 
     // ── Ads ──────────────────────────────────────────────────────────────────
@@ -147,6 +150,7 @@ public class LiteDbContext : IDisposable
             if (ad is null) return;
             ad.ImpressionCount++;
             col.Update(ad);
+            BumpDaily(r => r.Impressions++);
         }
     }
 
@@ -159,6 +163,8 @@ public class LiteDbContext : IDisposable
             if (ad is null) return;
             ad.ClickCount++;
             col.Update(ad);
+            // Klick = Anzeige angeschaut/geöffnet (ein Ereignis).
+            BumpDaily(r => r.Clicks++);
         }
     }
 
@@ -188,6 +194,8 @@ public class LiteDbContext : IDisposable
             {
                 events.Insert(new AdEvent { AdId = adId, Type = AdEventType.Like, IpHash = voterKey });
                 myVote = 1;
+                // Tagesstatistik: jedes neu vergebene 👍 zählt (für die Besucher-Charts).
+                BumpDaily(r => r.Likes++);
             }
             else if (value == -1)
             {
@@ -308,6 +316,93 @@ public class LiteDbContext : IDisposable
                 result[ev.AdId] = cur;
             }
             return result;
+        }
+    }
+
+    // ── Seitenbesuche & Tagesstatistik (Spotlight) ────────────────────────────
+    // Datensparsam: KEIN Datensatz je Besuch. Wir halten nur hochgezählte Zähler —
+    // einen Gesamtzähler (Kachel), eine Zeile pro Tag (Charts) und eine Zeile pro
+    // Land (Länder-Liste). Die IP wird nie gespeichert, nur der Ländercode.
+
+    // Hebt die Tageszeile (heute, UTC) für eine Kennzahl um delta an. Muss aus
+    // einem Kontext mit gehaltenem _lock aufgerufen werden.
+    private void BumpDaily(Action<DailyStat> apply)
+    {
+        var col = _db.GetCollection<DailyStat>("daily_stats");
+        var day = DateTime.UtcNow.Date;
+        var id = day.ToString("yyyy-MM-dd");
+        var row = col.FindById(id) ?? new DailyStat { Id = id, Date = day };
+        apply(row);
+        col.Upsert(row);
+    }
+
+    public long IncrementVisit(string? country = null)
+    {
+        lock (_lock)
+        {
+            var col = _db.GetCollection<Counter>("counters");
+            var c = col.FindById(Counter.SiteVisits) ?? new Counter { Id = Counter.SiteVisits };
+            c.Value++;
+            col.Upsert(c);
+
+            BumpDaily(r => r.Visits++);
+
+            // Kumulativer Länderzähler (eine Zeile je Land, nie eine IP).
+            var code = string.IsNullOrWhiteSpace(country) ? "??" : country.ToUpperInvariant();
+            var countries = _db.GetCollection<CountryStat>("country_stats");
+            var cs = countries.FindById(code) ?? new CountryStat { Id = code };
+            cs.Visits++;
+            countries.Upsert(cs);
+
+            return c.Value;
+        }
+    }
+
+    public long GetVisitCount()
+    {
+        lock (_lock)
+            return _db.GetCollection<Counter>("counters").FindById(Counter.SiteVisits)?.Value ?? 0;
+    }
+
+    // Besucher-Auswertung für [from, to): Zeitreihe aus den Tageszeilen (Buckets
+    // nach bucketStart, z. B. Tag oder Monat), Summen und die Gesamt-Länderliste.
+    // Länder sind kumulativ (gesamt), nicht auf das Zeitfenster eingeschränkt —
+    // das hält die DB schlank (keine Tag×Land-Matrix).
+    public VisitorStats GetVisitorStats(DateTime from, DateTime to, Func<DateTime, DateTime> bucketStart)
+    {
+        lock (_lock)
+        {
+            var days = _db.GetCollection<DailyStat>("daily_stats")
+                .Find(x => x.Date >= from && x.Date < to).ToList();
+
+            var buckets = new SortedDictionary<DateTime, VisitorTimePoint>();
+            var stats = new VisitorStats();
+
+            foreach (var d in days)
+            {
+                var key = bucketStart(d.Date);
+                if (!buckets.TryGetValue(key, out var p))
+                    buckets[key] = p = new VisitorTimePoint { Bucket = key };
+                p.Visits += d.Visits;
+                p.Clicks += d.Clicks;
+                p.Likes += d.Likes;
+                p.Impressions += d.Impressions;
+
+                stats.TotalVisits += d.Visits;
+                stats.TotalClicks += d.Clicks;
+                stats.TotalLikes += d.Likes;
+                stats.TotalImpressions += d.Impressions;
+            }
+
+            stats.Series = buckets.Values.ToList();
+
+            stats.Countries = _db.GetCollection<CountryStat>("country_stats")
+                .FindAll()
+                .Select(c => new CountryCount { Country = c.Id, Visits = c.Visits })
+                .OrderByDescending(c => c.Visits)
+                .ToList();
+
+            return stats;
         }
     }
 

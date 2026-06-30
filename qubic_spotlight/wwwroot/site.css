@@ -706,6 +706,69 @@ a {
     background-color: rgba(0, 0, 0, 0.025);
 }
 
+/* ── Admin → Besucher-Tab (Charts/Kacheln, mobil-tauglich) ─────────────────── */
+/* Zeitraum-Filter wie auf der Startseite (Segment-Buttons), darf auf schmalen
+   Screens umbrechen, damit alle fünf Bereiche erreichbar bleiben. */
+.vis-range {
+    width: fit-content;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+/* Summen-Kacheln: gleichmäßig wachsend/schrumpfend, mehrere pro Reihe. */
+.vis-sumcards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.vis-sumcard {
+    flex: 1 1 150px;
+}
+
+/* Auf schmalen Screens zwei Kacheln pro Reihe (statt sehr breiter Einzelkacheln). */
+@media (max-width: 600px) {
+    .vis-sumcards {
+        gap: 8px;
+    }
+
+    .vis-sumcard {
+        flex: 1 1 calc(50% - 8px);
+        min-width: 0;
+    }
+}
+
+/* Chart: nie über den Viewport hinaus quetschen; bei Bedarf horizontal scrollen. */
+.vis-chart-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.vis-chart-wrap .mud-chart {
+    min-width: 320px;
+}
+
+/* Zwei Spalten: links Chart, rechts Länderliste. Auf Mobile (≤ 900px) eine Spalte. */
+.vis-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.vis-col-chart,
+.vis-col-countries {
+    min-width: 0;
+}
+
+@media (max-width: 900px) {
+    .vis-columns {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
 #blazor-error-ui {
     background: #ea580c;
     color: #fff;

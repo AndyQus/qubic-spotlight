@@ -42,6 +42,26 @@ public class SpotlightApi
         catch { return new(); }
     }
 
+    // Zählt einen Seitenbesuch und gibt den neuen Gesamtwert zurück.
+    public async Task<long> RecordVisitAsync()
+    {
+        try
+        {
+            var res = await _http.PostAsync("api/visit", null);
+            if (!res.IsSuccessStatusCode) return 0;
+            var dto = await res.Content.ReadFromJsonAsync<VisitCount>();
+            return dto?.Total ?? 0;
+        }
+        catch { return 0; }
+    }
+
+    // Liest die Gesamtzahl der Seitenbesuche (ohne hochzuzählen).
+    public async Task<long> GetVisitCountAsync()
+    {
+        try { return (await _http.GetFromJsonAsync<VisitCount>("api/visits"))?.Total ?? 0; }
+        catch { return 0; }
+    }
+
     // ── Spotlight-/Feed-Seite ─────────────────────────────────────────────────
     public async Task<List<PublicAd>> GetFeedAsync(string sort, string? ecosystem, string? voterId)
     {
@@ -90,6 +110,22 @@ public class SpotlightApi
     {
         var url = $"api/admin/ads/stats?from={Uri.EscapeDataString(fromUtc.ToString("o"))}&to={Uri.EscapeDataString(toUtc.ToString("o"))}";
         return GetList<AdClickStat>(url);
+    }
+
+    // Besucher-Statistik (Zeitreihe + Länder) im Zeitfenster. bucket: "day"|"month".
+    public async Task<VisitorStats> GetVisitorStatsAsync(DateTime fromUtc, DateTime toUtc, string bucket)
+    {
+        var url = $"api/admin/ads/visitors?from={Uri.EscapeDataString(fromUtc.ToString("o"))}"
+                + $"&to={Uri.EscapeDataString(toUtc.ToString("o"))}&bucket={Uri.EscapeDataString(bucket)}";
+        var req = new HttpRequestMessage(HttpMethod.Get, url);
+        await Authorize(req);
+        try
+        {
+            var res = await _http.SendAsync(req);
+            if (!res.IsSuccessStatusCode) return new();
+            return await res.Content.ReadFromJsonAsync<VisitorStats>() ?? new();
+        }
+        catch { return new(); }
     }
 
     // Speichert über die passende Route (Manager = admin, sonst eigene).
